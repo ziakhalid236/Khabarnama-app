@@ -7,14 +7,13 @@ on:
     branches: [ "main", "master" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-android:
     name: Build Debug APK, Release APK & Play Store AAB
     runs-on: ubuntu-latest
-    env:
-      STORE_PASSWORD: ${{ secrets.STORE_PASSWORD || 'khabarnama2026' }}
-      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'khabarnama2026' }}
-      KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
 
     steps:
       - name: Checkout Repository
@@ -26,24 +25,34 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Make Gradlew Executable
         run: chmod +x ./gradlew
 
-      - name: Accept Android SDK Licenses & Install API 36 & 36.1
+      - name: Setup Android SDK API 36 & 36.1
         run: |
-          echo "y" | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager "platform-tools" "platforms;android-36" "platforms;android-36.1" "build-tools;36.0.0" || true
-          if [ ! -d "${ANDROID_HOME}/platforms/android-36.1" ] && [ -d "${ANDROID_HOME}/platforms/android-36" ]; then
-            echo "Creating android-36.1 platform fallback from android-36..."
-            cp -r "${ANDROID_HOME}/platforms/android-36" "${ANDROID_HOME}/platforms/android-36.1"
-            sed -i 's/AndroidVersion.ApiLevel=36/AndroidVersion.ApiLevel=36.1/g' "${ANDROID_HOME}/platforms/android-36.1/source.properties" || true
+          SDK_DIR="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          SDK_MANAGER="$SDK_DIR/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -f "$SDK_MANAGER" ]; then
+            SDK_MANAGER="sdkmanager"
           fi
-          echo "y" | sdkmanager --licenses >/dev/null 2>&1 || true
+          
+          echo "Accepting licenses..."
+          yes | $SDK_MANAGER --licenses || true
+          
+          echo "Installing platforms and build-tools..."
+          $SDK_MANAGER "platform-tools" "platforms;android-36" "build-tools;36.0.0" || true
+          $SDK_MANAGER "platforms;android-36.1" || true
+          
+          # If android-36.1 is not present, create compatibility fallback from android-36
+          if [ ! -d "$SDK_DIR/platforms/android-36.1" ] && [ -d "$SDK_DIR/platforms/android-36" ]; then
+            echo "Creating android-36.1 fallback from android-36..."
+            cp -r "$SDK_DIR/platforms/android-36" "$SDK_DIR/platforms/android-36.1"
+            sed -i 's/AndroidVersion.ApiLevel=36/AndroidVersion.ApiLevel=36.1/g' "$SDK_DIR/platforms/android-36.1/source.properties" || true
+          fi
+          
+          yes | $SDK_MANAGER --licenses || true
 
-      - name: Ensure .env File Exists for Secrets Gradle Plugin
+      - name: Ensure .env File Exists
         run: |
           if [ ! -f ".env" ]; then
             if [ -f ".env.example" ]; then
@@ -71,12 +80,11 @@ jobs:
         env:
           UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
         run: |
-          rm -f my-upload-key.jks
           if [ -n "$UPLOAD_KEYSTORE_BASE64" ]; then
-            echo "Using production upload keystore from GitHub Secrets..."
+            echo "Using upload keystore from GitHub Secrets..."
             echo "$UPLOAD_KEYSTORE_BASE64" | base64 -d > my-upload-key.jks
-          else
-            echo "Generating self-contained release upload keystore (alias: upload)..."
+          elif [ ! -f "my-upload-key.jks" ]; then
+            echo "Generating self-contained upload keystore..."
             keytool -genkeypair -v \
               -keystore my-upload-key.jks \
               -storepass khabarnama2026 \
@@ -86,37 +94,60 @@ jobs:
               -dname "CN=Khabarnama,OU=Mobile,O=Khabarnama,L=Karachi,ST=Sindh,C=PK"
           fi
 
-      - name: Build Debug APK
+      - name: Build Debug APK, Signed Release APK & Signed Play Store AAB
+        env:
+          STORE_PWD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PWD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          ./gradlew :app:assembleDebug \
-            -Pkotlin.compiler.execution.strategy=daemon \
-            --no-configuration-cache \
-            --stacktrace
-
-      - name: Build Signed Release APK & Play Store AAB
-        run: |
-          ./gradlew :app:assembleRelease :app:bundleRelease \
-            -Pkotlin.compiler.execution.strategy=daemon \
-            --no-configuration-cache \
-            --stacktrace
+          export STORE_PASSWORD="${STORE_PWD:-khabarnama2026}"
+          export KEY_PASSWORD="${KEY_PWD:-khabarnama2026}"
+          export KEYSTORE_PATH="$GITHUB_WORKSPACE/my-upload-key.jks"
+          
+          echo "Building Debug APK..."
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon
+          
+          echo "Building Signed Release APK and Play Store AAB Bundle..."
+          ./gradlew :app:assembleRelease :app:bundleRelease --stacktrace --no-daemon
+          
+          # Prepare clean-named release files in build-artifacts/
+          mkdir -p build-artifacts
+          cp app/build/outputs/apk/release/*.apk build-artifacts/Khabarnama-Release-v1.0.apk || true
+          cp app/build/outputs/bundle/release/*.aab build-artifacts/Khabarnama-PlayStore-v1.0.aab || true
+          cp app/build/outputs/apk/debug/*.apk build-artifacts/Khabarnama-Debug-v1.0.apk || true
 
       - name: Upload Signed Release APK (.apk)
         uses: actions/upload-artifact@v4
         with:
           name: Khabarnama-Signed-Release-APK
-          path: app/build/outputs/apk/release/*.apk
+          path: build-artifacts/Khabarnama-Release-v1.0.apk
           if-no-files-found: error
 
       - name: Upload Play Store Release Bundle (.aab)
         uses: actions/upload-artifact@v4
         with:
           name: Khabarnama-PlayStore-Release-AAB
-          path: app/build/outputs/bundle/release/*.aab
+          path: build-artifacts/Khabarnama-PlayStore-v1.0.aab
           if-no-files-found: error
 
       - name: Upload Debug APK (.apk)
         uses: actions/upload-artifact@v4
         with:
           name: Khabarnama-Debug-APK
-          path: app/build/outputs/apk/debug/*.apk
+          path: build-artifacts/Khabarnama-Debug-v1.0.apk
           if-no-files-found: warn
+
+      - name: Publish Direct Download to GitHub Releases
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -n "$GITHUB_TOKEN" ]; then
+            TAG="v1.0"
+            echo "Creating or updating GitHub Release $TAG with direct APK download..."
+            gh release create "$TAG" \
+              build-artifacts/Khabarnama-Release-v1.0.apk \
+              build-artifacts/Khabarnama-PlayStore-v1.0.aab \
+              --title "Khabarnama v1.0 Release" \
+              --notes "Official release of Khabarnama with live global RSS news, offline Room caching, prayer times, and multi-language translation. Direct APK download attached." \
+              --clobber || true
+          fi

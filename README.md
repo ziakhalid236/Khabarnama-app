@@ -26,11 +26,16 @@ This repository includes a pre-configured GitHub Actions workflow at **`.github/
 
 ### How to Build on GitHub (اردو رہنمائی):
 1. **Push to GitHub**: Export or push this project to your GitHub repository (`main` or `master` branch).
-2. **Open GitHub Actions**: Go to your repository on GitHub and click the **Actions** tab.
-3. **Download Your Files**: Once the workflow (**"Build Android APK & Play Store AAB"**) finishes, scroll down to **Artifacts** and download:
-   - **`Khabarnama-PlayStore-Release-AAB`** (`app-release.aab` — ready to upload to Google Play Console)
-   - **`Khabarnama-Signed-Release-APK`** (`app-release.apk` — R8-minified release APK ready to install on phones)
-   - **`Khabarnama-Debug-APK`** (`app-debug.apk`)
+2. **Open GitHub Actions**: Go to your repository on GitHub and click the **Actions** tab. The build runs automatically.
+3. **Direct 1-Tap Download (GitHub Releases)**:
+   - Go to the **Releases** tab on your GitHub repository.
+   - Click on the latest release (`v1.0`).
+   - Tap directly on **`Khabarnama-Release-v1.0.apk`** to download and install immediately on your Android phone without needing to unzip any file!
+4. **Alternative Download (Workflow Artifacts)**:
+   - On the completed Actions run page, scroll to **Artifacts** to download:
+     - **`Khabarnama-Signed-Release-APK`**
+     - **`Khabarnama-PlayStore-Release-AAB`** (ready for Google Play Console upload)
+     - **`Khabarnama-Debug-APK`**
 
 ### Optional: Custom Production Keystore in GitHub Secrets
 If you want GitHub Actions to sign the release with your own permanent `.jks` keystore (with alias `upload`), add these 3 repository secrets under **GitHub Repo → Settings → Secrets and variables → Actions**:
