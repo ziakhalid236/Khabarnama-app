@@ -790,12 +790,17 @@ fun SettingsDialog(
                                     ) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
                                         ) {
+                                            CategoryBadgeIcon(
+                                                category = source.category,
+                                                tint = if (isIslamic) DeepEmerald else SoftGrey,
+                                                size = 12.dp
+                                            )
                                             if (isIslamic) {
                                                 Box(
                                                     modifier = Modifier
-                                                        .size(6.dp)
+                                                        .size(5.dp)
                                                         .clip(CircleShape)
                                                         .background(MutedGold)
                                                 )
@@ -828,34 +833,30 @@ fun SettingsDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Info,
-                                contentDescription = "About Khabarnama",
-                                tint = DeepEmerald,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Text(
-                                text = "About",
-                                fontFamily = PlayfairDisplay,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                color = InkPrimary
-                            )
+                            KhabarnamaBrandMark(size = 34.dp)
+                            Column {
+                                Text(
+                                    text = "About Khabarnama",
+                                    fontFamily = PlayfairDisplay,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp,
+                                    color = InkPrimary
+                                )
+                                Text(
+                                    text = "Khabarnama v1.0 • Global & Islamic Dispatch",
+                                    fontFamily = Inter,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.5.sp,
+                                    color = DeepEmerald
+                                )
+                            }
                         }
-
-                        Text(
-                            text = "Khabarnama v1.0 • Global & Islamic Dispatch",
-                            fontFamily = Inter,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp,
-                            color = InkPrimary
-                        )
 
                         Text(
                             text = "Khabarnama delivers curated international, Pakistani, and Islamic reporting with an English-locked editorial interface and on-demand headline and summary translation into Urdu, Arabic, Turkish, and Hindi. Full articles open directly on each publisher's website with complete journalistic attribution.",

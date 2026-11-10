@@ -2,7 +2,7 @@ name: Build Android APK & Play Store AAB
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "**" ]
   pull_request:
     branches: [ "main", "master" ]
   workflow_dispatch:
@@ -22,18 +22,32 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
 
-      - name: Set up Android SDK (API 36)
+      - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Accept Android SDK Licenses & Install API 36.1
+      - name: Accept Android SDK Licenses & Install API 36 & 36.1
         run: |
           yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
+          sdkmanager "platform-tools" "platforms;android-36" "platforms;android-36.1" "build-tools;36.0.0" || true
+          if [ ! -d "${ANDROID_HOME}/platforms/android-36.1" ]; then
+            sdkmanager --channel=3 "platforms;android-36.1" || true
+          fi
+          yes | sdkmanager --licenses || true
 
       - name: Set up Gradle 9.3.1
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.3.1'
+
+      - name: Ensure .env File Exists for Secrets Gradle Plugin
+        run: |
+          if [ ! -f ".env" ]; then
+            if [ -f ".env.example" ]; then
+              cp .env.example .env
+            else
+              touch .env
+            fi
+          fi
 
       - name: Prepare Debug Keystore
         run: |
@@ -55,13 +69,14 @@ jobs:
           SECRET_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
           SECRET_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
+          rm -f my-upload-key.jks
           if [ -n "$UPLOAD_KEYSTORE_BASE64" ] && [ -n "$SECRET_STORE_PASSWORD" ] && [ -n "$SECRET_KEY_PASSWORD" ]; then
             echo "Using production upload keystore from GitHub Secrets..."
             echo "$UPLOAD_KEYSTORE_BASE64" | base64 -d > my-upload-key.jks
             echo "STORE_PASSWORD=$SECRET_STORE_PASSWORD" >> $GITHUB_ENV
             echo "KEY_PASSWORD=$SECRET_KEY_PASSWORD" >> $GITHUB_ENV
           else
-            echo "No GitHub keystore secrets configured yet — generating upload keystore (alias: upload)..."
+            echo "Generating self-contained release upload keystore (alias: upload)..."
             keytool -genkeypair -v \
               -keystore my-upload-key.jks \
               -storepass khabarnama2026 \
@@ -74,22 +89,32 @@ jobs:
           fi
           echo "KEYSTORE_PATH=${GITHUB_WORKSPACE}/my-upload-key.jks" >> $GITHUB_ENV
 
-      - name: Build Debug APK, Signed Release APK & Signed Play Store AAB
+      - name: Build Debug APK
         run: |
-          gradle :app:assembleDebug :app:assembleRelease :app:bundleRelease --no-daemon
+          gradle :app:assembleDebug \
+            -Pkotlin.compiler.execution.strategy=daemon \
+            --no-configuration-cache \
+            --stacktrace
 
-      - name: Upload Play Store Release Bundle (.aab)
-        uses: actions/upload-artifact@v4
-        with:
-          name: Khabarnama-PlayStore-Release-AAB
-          path: app/build/outputs/bundle/release/*.aab
-          if-no-files-found: error
+      - name: Build Signed Release APK & Play Store AAB
+        run: |
+          gradle :app:assembleRelease :app:bundleRelease \
+            -Pkotlin.compiler.execution.strategy=daemon \
+            --no-configuration-cache \
+            --stacktrace
 
       - name: Upload Signed Release APK (.apk)
         uses: actions/upload-artifact@v4
         with:
           name: Khabarnama-Signed-Release-APK
           path: app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      - name: Upload Play Store Release Bundle (.aab)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Khabarnama-PlayStore-Release-AAB
+          path: app/build/outputs/bundle/release/*.aab
           if-no-files-found: error
 
       - name: Upload Debug APK (.apk)

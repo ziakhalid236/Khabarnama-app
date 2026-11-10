@@ -352,7 +352,7 @@ fun FacebookNewsCard(
                             )
                         }
 
-                        // Normal-case category pill (no tiny all-caps labels)
+                        // Normal-case category pill with category icon
                         Box(
                             modifier = Modifier
                                 .padding(start = 8.dp)
@@ -367,12 +367,17 @@ fun FacebookNewsCard(
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
+                                CategoryBadgeIcon(
+                                    category = article.category,
+                                    tint = if (isIslamic) GoldTextDark else DeepEmerald,
+                                    size = 13.dp
+                                )
                                 if (isIslamic) {
                                     Box(
                                         modifier = Modifier
-                                            .size(6.dp)
+                                            .size(5.dp)
                                             .clip(CircleShape)
                                             .background(MutedGold)
                                     )

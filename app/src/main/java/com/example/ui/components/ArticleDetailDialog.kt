@@ -392,12 +392,17 @@ fun ArticleDetailDialog(
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                                 ) {
+                                    CategoryBadgeIcon(
+                                        category = article.category,
+                                        tint = if (isIslamic) DeepEmerald else SoftGrey,
+                                        size = 13.dp
+                                    )
                                     if (isIslamic) {
                                         Box(
                                             modifier = Modifier
-                                                .size(6.dp)
+                                                .size(5.dp)
                                                 .clip(CircleShape)
                                                 .background(MutedGold)
                                         )
