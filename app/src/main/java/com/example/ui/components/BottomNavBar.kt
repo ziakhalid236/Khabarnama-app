@@ -1,0 +1,127 @@
+package com.example.ui.components
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Mosque
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.Mosque
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.model.NewsCategory
+import com.example.ui.theme.DeepEmerald
+import com.example.ui.theme.Inter
+import com.example.ui.theme.PureWhite
+import com.example.ui.theme.SoftGrey
+import com.example.ui.theme.WarmDivider
+
+enum class NavTab(
+    val title: String,
+    val outlinedIcon: ImageVector,
+    val filledIcon: ImageVector
+) {
+    HOME("Home", Icons.Outlined.Home, Icons.Filled.Home),
+    ISLAMIC("Islamic", Icons.Outlined.Mosque, Icons.Filled.Mosque),
+    SEARCH("Search", Icons.Outlined.Search, Icons.Filled.Search),
+    SETTINGS("Settings", Icons.Outlined.Settings, Icons.Filled.Settings)
+}
+
+@Composable
+fun KhabarnamaBottomNavBar(
+    selectedCategory: NewsCategory,
+    isSearchOpen: Boolean,
+    isSettingsOpen: Boolean = false,
+    onTabSelected: (NavTab) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val currentTab = when {
+        isSettingsOpen -> NavTab.SETTINGS
+        isSearchOpen -> NavTab.SEARCH
+        selectedCategory == NewsCategory.ISLAMIC -> NavTab.ISLAMIC
+        else -> NavTab.HOME
+    }
+
+    Surface(
+        color = PureWhite,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HorizontalDivider(thickness = 1.dp, color = WarmDivider)
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 64.dp)
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceAround,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                NavTab.entries.forEach { tab ->
+                    val isSelected = tab == currentTab
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier
+                            .minimumInteractiveComponentSize()
+                            .defaultMinSize(minWidth = 64.dp, minHeight = 48.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { onTabSelected(tab) }
+                            .semantics {
+                                role = Role.Tab
+                                selected = isSelected
+                            }
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .testTag("nav_tab_${tab.name.lowercase()}")
+                    ) {
+                        Icon(
+                            imageVector = if (isSelected) tab.filledIcon else tab.outlinedIcon,
+                            contentDescription = "${tab.title} tab",
+                            tint = if (isSelected) DeepEmerald else SoftGrey,
+                            modifier = Modifier.size(24.dp)
+                        )
+
+                        Text(
+                            text = tab.title,
+                            fontFamily = Inter,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                            fontSize = 12.sp,
+                            color = if (isSelected) DeepEmerald else SoftGrey
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

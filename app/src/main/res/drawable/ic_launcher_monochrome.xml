@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Monochrome Globe + Newspaper + Crescent for Android 13+ Themed Icons & Status Bar Notifications -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="3.2"
+        android:strokeLineCap="round"
+        android:pathData="M31,55 A21,21 0 0,1 55,29" />
+
+    <!-- Globe Circle (clipped visually around newspaper) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.8"
+        android:strokeLineCap="round"
+        android:pathData="M45,65 A16.5,16.5 0 1,1 65,45" />
+
+    <!-- Globe Meridian & Equator -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:pathData="M49,32.5 A8.5,16.5 0 0,0 44,62" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:pathData="M33,49 L45,49" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.0"
+        android:strokeLineCap="round"
+        android:pathData="M35,41.5 Q49,44.5 62,41.5" />
+
+    <!-- Newspaper Card Outline -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.8"
+        android:strokeLineJoin="round"
+        android:pathData="M46,47 L72,47 L72,74 L46,74 Z" />
+
+    <!-- Newspaper Masthead & Headline Bars -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M50,51 L68,51 L68,55.5 L50,55.5 Z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:pathData="M50.5,60 L67.5,60" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:pathData="M50.5,64.5 L67.5,64.5" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.2"
+        android:strokeLineCap="round"
+        android:pathData="M50.5,69 L61.5,69" />
+</vector>

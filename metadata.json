@@ -1,0 +1,6 @@
+{
+  "name": "Khabarnama",
+  "description": "Global and Islamic news dispatch featuring verified RSS publishers, astronomical prayer times, Hijri calendar, and on-demand translation.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

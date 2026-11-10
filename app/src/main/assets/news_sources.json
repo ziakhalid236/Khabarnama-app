@@ -1,0 +1,306 @@
+[
+  {
+    "name": "SeekersGuidance",
+    "feedUrl": "https://seekersguidance.org/feed/",
+    "category": "ISLAMIC",
+    "language": "EN",
+    "isIslamicSource": true,
+    "isScholarlySource": true
+  },
+  {
+    "name": "AboutIslam",
+    "feedUrl": "https://aboutislam.net/feed/",
+    "category": "ISLAMIC",
+    "language": "EN",
+    "isIslamicSource": true,
+    "isScholarlySource": true
+  },
+  {
+    "name": "Islam21c",
+    "feedUrl": "https://www.islam21c.com/feed/",
+    "category": "ISLAMIC",
+    "language": "EN",
+    "isIslamicSource": true,
+    "isScholarlySource": true
+  },
+  {
+    "name": "MuslimMatters",
+    "feedUrl": "https://muslimmatters.org/feed/",
+    "category": "ISLAMIC",
+    "language": "EN",
+    "isIslamicSource": true,
+    "isScholarlySource": true
+  },
+  {
+    "name": "IlmFeed",
+    "feedUrl": "https://ilmfeed.com/feed/",
+    "category": "ISLAMIC",
+    "language": "EN",
+    "isIslamicSource": true,
+    "isScholarlySource": false
+  },
+  {
+    "name": "5Pillars",
+    "feedUrl": "https://5pillarsuk.com/feed/",
+    "category": "ISLAMIC",
+    "language": "EN",
+    "isIslamicSource": true,
+    "isScholarlySource": false
+  },
+  {
+    "name": "ProductiveMuslim",
+    "feedUrl": "https://productivemuslim.com/feed/",
+    "category": "ISLAMIC",
+    "language": "EN",
+    "isIslamicSource": true,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Dawn",
+    "feedUrl": "https://feeds.feedburner.com/dawn-news",
+    "category": "PAKISTAN",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "The Express Tribune",
+    "feedUrl": "https://tribune.com.pk/feed/pakistan",
+    "category": "PAKISTAN",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "The Express Tribune",
+    "feedUrl": "https://tribune.com.pk/feed/home",
+    "category": "PAKISTAN",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Geo News",
+    "feedUrl": "https://www.geo.tv/rss/1/1",
+    "category": "PAKISTAN",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "ARY News",
+    "feedUrl": "https://arynews.tv/feed/",
+    "category": "PAKISTAN",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Pakistan Today",
+    "feedUrl": "https://www.pakistantoday.com.pk/feed/",
+    "category": "PAKISTAN",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Business Recorder",
+    "feedUrl": "https://www.brecorder.com/feeds/latest-news",
+    "category": "PAKISTAN",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Al Jazeera",
+    "feedUrl": "https://www.aljazeera.com/xml/rss/all.xml",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "BBC News",
+    "feedUrl": "https://feeds.bbci.co.uk/news/world/rss.xml",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "BBC Asia",
+    "feedUrl": "https://feeds.bbci.co.uk/news/world/asia/rss.xml",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Middle East Eye",
+    "feedUrl": "https://www.middleeasteye.net/rss",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Arab News",
+    "feedUrl": "https://www.arabnews.com/rss.xml",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Saudi Gazette",
+    "feedUrl": "https://saudigazette.com.sa/rssFeed/74",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Daily Sabah",
+    "feedUrl": "https://www.dailysabah.com/rssFeed/11",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "UN News",
+    "feedUrl": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Anadolu Agency",
+    "feedUrl": "https://www.aa.com.tr/en/rss/default?cat=middle-east",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Anadolu Agency",
+    "feedUrl": "https://www.aa.com.tr/en/rss/default?cat=world",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "The Express Tribune",
+    "feedUrl": "https://tribune.com.pk/feed/world",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "The Express Tribune",
+    "feedUrl": "https://tribune.com.pk/feed/business",
+    "category": "BUSINESS",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Anadolu Agency",
+    "feedUrl": "https://www.aa.com.tr/en/rss/default?cat=economy",
+    "category": "BUSINESS",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "BBC Business",
+    "feedUrl": "https://feeds.bbci.co.uk/news/business/rss.xml",
+    "category": "BUSINESS",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "CNBC World",
+    "feedUrl": "https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=100727362",
+    "category": "BUSINESS",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "ESPNcricinfo",
+    "feedUrl": "https://www.espncricinfo.com/rss/content/story/feeds/0.xml",
+    "category": "SPORTS",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "BBC Sport",
+    "feedUrl": "https://feeds.bbci.co.uk/sport/rss.xml",
+    "category": "SPORTS",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "The Express Tribune",
+    "feedUrl": "https://tribune.com.pk/feed/sports",
+    "category": "SPORTS",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Anadolu Agency",
+    "feedUrl": "https://www.aa.com.tr/en/rss/default?cat=sports",
+    "category": "SPORTS",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "TechCrunch",
+    "feedUrl": "https://techcrunch.com/feed/",
+    "category": "TECHNOLOGY",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "The Verge",
+    "feedUrl": "https://www.theverge.com/rss/index.xml",
+    "category": "TECHNOLOGY",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Ars Technica",
+    "feedUrl": "https://feeds.arstechnica.com/arstechnica/index",
+    "category": "TECHNOLOGY",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "The Express Tribune",
+    "feedUrl": "https://tribune.com.pk/feed/technology",
+    "category": "TECHNOLOGY",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Anadolu Agency",
+    "feedUrl": "https://www.aa.com.tr/en/rss/default?cat=science-technology",
+    "category": "TECHNOLOGY",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  }
+]

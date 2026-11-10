@@ -1,11 +1,49 @@
-<div align="center">
+# Khabarnama — Global, Pakistani & Islamic News Dispatch
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+**Khabarnama** is an Android news aggregator built with **Kotlin**, **Jetpack Compose (Material 3)**, **Room**, **WorkManager**, **OkHttp**, **Adhan**, and **Firebase AI Logic (Gemini)**.
 
-  <h1>Built with AI Studio</h2>
+---
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+## ✨ Key Features
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+- **23+ Trusted Global, Pakistani & Islamic Publishers (38 Live RSS Feeds)**:
+  - **Pakistan (`🇵🇰`)**: Dawn, The Express Tribune, Geo News, ARY News, Pakistan Today, Business Recorder
+  - **World & Middle East (`🇶🇦`, `🇸🇦`, `🇬🇧`, `🇹🇷`, `🇺🇳`)**: Al Jazeera, Arab News, BBC News, Middle East Eye, Anadolu Agency, Saudi Gazette, Daily Sabah, UN News
+  - **Islamic & Scholarly (`🕌`)**: SeekersGuidance, AboutIslam, Islam21c, MuslimMatters, IlmFeed, 5Pillars, ProductiveMuslim
+  - **Business, Sports & Tech**: BBC Business, CNBC World, ESPNcricinfo, BBC Sport, TechCrunch, The Verge, Ars Technica
+- **Instant Multi-Language Translation (`🇬🇧 EN`, `🇵🇰 UR`, `🇸🇦 AR`, `🇹🇷 TR`, `🇮🇳 HI`)**:
+  - English-locked LTR app shell while headlines and summaries translate on-demand into Urdu (Nastaliq), Arabic (Naskh), Turkish, and Hindi using a dual-engine architecture (Firebase AI Logic + Instant Cloud Translation Fallback) with local Room caching.
+- **Astronomical Prayer Times & Hijri Calendar**:
+  - Powered by the `Adhan` library with city-specific time zones (`Karachi`, `Lahore`, `Islamabad`, `Makkah`, `Madinah`, `London`, `New York`) and Hijri moon-sighting adjustment (`-2` to `+2` days).
+- **Offline-First Architecture**:
+  - Automatic local Room database caching and 6-hour periodic background sync via `WorkManager`. No external backend server or database required.
 
-</div>
+---
+
+## 🚀 GitHub Actions — Automatic APK & Play Store AAB Build
+
+This repository includes a pre-configured GitHub Actions workflow at **`.github/workflows/android-release.yml`**.
+
+### How to Build on GitHub (اردو رہنمائی):
+1. **Push to GitHub**: Export or push this project to your GitHub repository (`main` or `master` branch).
+2. **Open GitHub Actions**: Go to your repository on GitHub and click the **Actions** tab.
+3. **Download Your Files**: Once the workflow (**"Build Android APK & Play Store AAB"**) finishes, scroll down to **Artifacts** and download:
+   - **`Khabarnama-PlayStore-Release-AAB`** (`app-release.aab` — ready to upload to Google Play Console)
+   - **`Khabarnama-Signed-Release-APK`** (`app-release.apk` — R8-minified release APK ready to install on phones)
+   - **`Khabarnama-Debug-APK`** (`app-debug.apk`)
+
+### Optional: Custom Production Keystore in GitHub Secrets
+If you want GitHub Actions to sign the release with your own permanent `.jks` keystore (with alias `upload`), add these 3 repository secrets under **GitHub Repo → Settings → Secrets and variables → Actions**:
+- `UPLOAD_KEYSTORE_BASE64`: Base64-encoded contents of your `.jks` file (`base64 -w 0 my-upload-key.jks`)
+- `STORE_PASSWORD`: Your keystore password
+- `KEY_PASSWORD`: Your key password
+
+*(If these secrets are not set, the workflow automatically generates a valid upload keystore so your build always succeeds immediately.)*
+
+---
+
+## 📦 Changing the Final Application ID before Play Store Upload
+Open `app/build.gradle.kts` (line 14) and update the single constant:
+```kotlin
+val APP_APPLICATION_ID = "com.aistudio.urdunews.kmqv"
+```
