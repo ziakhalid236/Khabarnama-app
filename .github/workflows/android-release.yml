@@ -11,6 +11,10 @@ jobs:
   build-android:
     name: Build Debug APK, Release APK & Play Store AAB
     runs-on: ubuntu-latest
+    env:
+      STORE_PASSWORD: ${{ secrets.STORE_PASSWORD || 'khabarnama2026' }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'khabarnama2026' }}
+      KEYSTORE_PATH: ${{ github.workspace }}/my-upload-key.jks
 
     steps:
       - name: Checkout Repository
@@ -25,19 +29,19 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Make Gradlew Executable
+        run: chmod +x ./gradlew
+
       - name: Accept Android SDK Licenses & Install API 36 & 36.1
         run: |
-          yes | sdkmanager --licenses || true
+          echo "y" | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager "platform-tools" "platforms;android-36" "platforms;android-36.1" "build-tools;36.0.0" || true
-          if [ ! -d "${ANDROID_HOME}/platforms/android-36.1" ]; then
-            sdkmanager --channel=3 "platforms;android-36.1" || true
+          if [ ! -d "${ANDROID_HOME}/platforms/android-36.1" ] && [ -d "${ANDROID_HOME}/platforms/android-36" ]; then
+            echo "Creating android-36.1 platform fallback from android-36..."
+            cp -r "${ANDROID_HOME}/platforms/android-36" "${ANDROID_HOME}/platforms/android-36.1"
+            sed -i 's/AndroidVersion.ApiLevel=36/AndroidVersion.ApiLevel=36.1/g' "${ANDROID_HOME}/platforms/android-36.1/source.properties" || true
           fi
-          yes | sdkmanager --licenses || true
-
-      - name: Set up Gradle 9.3.1
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '9.3.1'
+          echo "y" | sdkmanager --licenses >/dev/null 2>&1 || true
 
       - name: Ensure .env File Exists for Secrets Gradle Plugin
         run: |
@@ -66,15 +70,11 @@ jobs:
       - name: Prepare Release Upload Keystore
         env:
           UPLOAD_KEYSTORE_BASE64: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
-          SECRET_STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-          SECRET_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           rm -f my-upload-key.jks
-          if [ -n "$UPLOAD_KEYSTORE_BASE64" ] && [ -n "$SECRET_STORE_PASSWORD" ] && [ -n "$SECRET_KEY_PASSWORD" ]; then
+          if [ -n "$UPLOAD_KEYSTORE_BASE64" ]; then
             echo "Using production upload keystore from GitHub Secrets..."
             echo "$UPLOAD_KEYSTORE_BASE64" | base64 -d > my-upload-key.jks
-            echo "STORE_PASSWORD=$SECRET_STORE_PASSWORD" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=$SECRET_KEY_PASSWORD" >> $GITHUB_ENV
           else
             echo "Generating self-contained release upload keystore (alias: upload)..."
             keytool -genkeypair -v \
@@ -84,21 +84,18 @@ jobs:
               -keypass khabarnama2026 \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -dname "CN=Khabarnama,OU=Mobile,O=Khabarnama,L=Karachi,ST=Sindh,C=PK"
-            echo "STORE_PASSWORD=khabarnama2026" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=khabarnama2026" >> $GITHUB_ENV
           fi
-          echo "KEYSTORE_PATH=${GITHUB_WORKSPACE}/my-upload-key.jks" >> $GITHUB_ENV
 
       - name: Build Debug APK
         run: |
-          gradle :app:assembleDebug \
+          ./gradlew :app:assembleDebug \
             -Pkotlin.compiler.execution.strategy=daemon \
             --no-configuration-cache \
             --stacktrace
 
       - name: Build Signed Release APK & Play Store AAB
         run: |
-          gradle :app:assembleRelease :app:bundleRelease \
+          ./gradlew :app:assembleRelease :app:bundleRelease \
             -Pkotlin.compiler.execution.strategy=daemon \
             --no-configuration-cache \
             --stacktrace
