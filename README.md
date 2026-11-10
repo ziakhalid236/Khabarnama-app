@@ -1,6 +1,9 @@
 # Khabarnama — Global, Pakistani & Islamic News Dispatch
 
-**Khabarnama** is an Android news aggregator built with **Kotlin**, **Jetpack Compose (Material 3)**, **Room**, **WorkManager**, **OkHttp**, **Adhan**, and **Firebase AI Logic (Gemini)**.
+[![Build Android APK & Play Store AAB](https://img.shields.io/badge/Build-Android%20APK%20%26%20AAB-126B59?logo=github-actions&logoColor=white)](.github/workflows/android-release.yml)
+[![Direct APK Download](https://img.shields.io/badge/Download-Release%20APK-B8913B?logo=android&logoColor=white)](../../releases)
+[![Platform](https://img.shields.io/badge/Platform-Android%2014+-0F5C4D?logo=android&logoColor=white)](app/build.gradle.kts)
+[![License](https://img.shields.io/badge/License-Proprietary-gray)](#)
 
 ---
 

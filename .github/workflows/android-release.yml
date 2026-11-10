@@ -83,6 +83,9 @@ jobs:
           if [ -n "$UPLOAD_KEYSTORE_BASE64" ]; then
             echo "Using upload keystore from GitHub Secrets..."
             echo "$UPLOAD_KEYSTORE_BASE64" | base64 -d > my-upload-key.jks
+          elif [ -f "my-upload-key.base64" ]; then
+            echo "Decoding bundled release upload keystore..."
+            base64 -d my-upload-key.base64 > my-upload-key.jks
           elif [ ! -f "my-upload-key.jks" ]; then
             echo "Generating self-contained upload keystore..."
             keytool -genkeypair -v \
