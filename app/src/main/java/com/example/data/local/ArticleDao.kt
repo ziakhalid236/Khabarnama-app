@@ -90,6 +90,9 @@ interface ArticleDao {
     @Query("DELETE FROM cached_articles WHERE publishedAt < :olderThan")
     suspend fun deleteArticlesOlderThan(olderThan: Long)
 
+    @Query("DELETE FROM cached_articles WHERE id LIKE 'seed_%'")
+    suspend fun deleteDemoSeedArticles()
+
     @Query("DELETE FROM article_translations WHERE articleId NOT IN (SELECT id FROM cached_articles)")
     suspend fun deleteOrphanTranslations()
 

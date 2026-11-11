@@ -364,7 +364,6 @@ private fun MainNewsContent(
                                 }
                             }
                         },
-                        onSendTestNotification = { viewModel.sendTestBreakingNotification() },
                         onBackToHome = { isNotificationsPageOpen = false },
                         modifier = Modifier
                             .fillMaxSize()
@@ -820,7 +819,6 @@ private fun MainNewsContent(
                             }
                         }
                     },
-                    onSendTestNotification = { viewModel.sendTestBreakingNotification() },
                     onHijriAdjustmentSelected = { viewModel.setHijriAdjustment(it) },
                     onOpenLanguageSelect = { viewModel.showLanguageDialog(true) },
                     onOpenPrayerCitySelect = { viewModel.showPrayerDialog(true) },

@@ -86,11 +86,8 @@ import com.example.ui.theme.SoftGrey
 import com.example.ui.theme.WarmBorder
 import com.example.ui.theme.WarmDivider
 import com.example.ui.theme.WarmOffWhite
-import com.example.util.BrowserUtil
 import com.example.util.CityPrayerInfo
 import com.example.util.PrayerTimesUtil
-
-const val PRIVACY_POLICY_URL = "https://ais-pre-3hjo7cwekaqntolbnr6c4h-828619519318.asia-southeast1.run.app/privacy"
 
 @Composable
 fun SettingsDialog(
@@ -99,7 +96,6 @@ fun SettingsDialog(
     hijriAdjustment: Int = 0,
     notificationsEnabled: Boolean = true,
     onToggleNotifications: (Boolean) -> Unit = {},
-    onSendTestNotification: () -> Unit = {},
     onHijriAdjustmentSelected: (Int) -> Unit = {},
     onOpenLanguageSelect: () -> Unit,
     onOpenPrayerCitySelect: () -> Unit,
@@ -375,32 +371,6 @@ fun SettingsDialog(
                                             uncheckedTrackColor = WarmDivider
                                         ),
                                         modifier = Modifier.testTag("settings_notifications_switch")
-                                    )
-                                }
-
-                                OutlinedButton(
-                                    onClick = onSendTestNotification,
-                                    enabled = notificationsEnabled,
-                                    shape = RoundedCornerShape(12.dp),
-                                    border = BorderStroke(1.dp, if (notificationsEnabled) DeepEmerald else WarmBorder),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .heightIn(min = 48.dp)
-                                        .testTag("settings_test_notification_button")
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.NotificationsActive,
-                                        contentDescription = "Send breaking news alert preview",
-                                        tint = if (notificationsEnabled) DeepEmerald else SoftGrey,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Send Breaking News Image Alert Now",
-                                        fontFamily = Inter,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 13.sp,
-                                        color = if (notificationsEnabled) DeepEmerald else SoftGrey
                                     )
                                 }
                             }
@@ -785,7 +755,12 @@ fun SettingsDialog(
                                     Box(
                                         modifier = Modifier
                                             .clip(RoundedCornerShape(10.dp))
-                                            .background(if (isIslamic) EmeraldTint else WarmDivider)
+                                            .background(if (isIslamic) PureWhite else WarmDivider)
+                                            .border(
+                                                width = 1.dp,
+                                                color = if (isIslamic) Color(0xFF0A0A0A) else WarmBorder,
+                                                shape = RoundedCornerShape(10.dp)
+                                            )
                                             .padding(horizontal = 10.dp, vertical = 4.dp)
                                     ) {
                                         Row(
@@ -794,23 +769,23 @@ fun SettingsDialog(
                                         ) {
                                             CategoryBadgeIcon(
                                                 category = source.category,
-                                                tint = if (isIslamic) DeepEmerald else SoftGrey,
-                                                size = 12.dp
+                                                tint = if (isIslamic) Color(0xFF0A0A0A) else SoftGrey,
+                                                size = 13.dp
                                             )
                                             if (isIslamic) {
                                                 Box(
                                                     modifier = Modifier
                                                         .size(5.dp)
                                                         .clip(CircleShape)
-                                                        .background(MutedGold)
+                                                        .background(Color(0xFF0A0A0A))
                                                 )
                                             }
                                             Text(
                                                 text = source.category.englishLabel,
                                                 fontFamily = Inter,
-                                                fontWeight = FontWeight.Medium,
+                                                fontWeight = FontWeight.SemiBold,
                                                 fontSize = 12.sp,
-                                                color = if (isIslamic) DeepEmerald else SoftGrey
+                                                color = if (isIslamic) Color(0xFF0A0A0A) else SoftGrey
                                             )
                                         }
                                     }
@@ -849,7 +824,7 @@ fun SettingsDialog(
                                     color = InkPrimary
                                 )
                                 Text(
-                                    text = "Khabarnama v1.0 • Global & Islamic Dispatch",
+                                    text = "Khabarnama v1.0.0 • Global & Islamic Dispatch",
                                     fontFamily = Inter,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.5.sp,
@@ -859,7 +834,7 @@ fun SettingsDialog(
                         }
 
                         Text(
-                            text = "Khabarnama delivers curated international, Pakistani, and Islamic reporting with an English-locked editorial interface and on-demand headline and summary translation into Urdu, Arabic, Turkish, and Hindi. Full articles open directly on each publisher's website with complete journalistic attribution.",
+                            text = "Khabarnama delivers curated international, Pakistani, and Islamic reporting with instant headline and summary translation into Urdu, Arabic, Turkish, and Hindi. Full articles open directly on each publisher's official website with complete journalistic attribution.",
                             fontFamily = Inter,
                             fontSize = 13.sp,
                             lineHeight = 20.sp,
@@ -868,7 +843,7 @@ fun SettingsDialog(
                     }
                 }
 
-                // SECTION 5: PRIVACY POLICY (with external Privacy Policy link)
+                // SECTION 5: PRIVACY POLICY
                 Surface(
                     color = PureWhite,
                     shape = RoundedCornerShape(20.dp),
@@ -894,7 +869,7 @@ fun SettingsDialog(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                text = "Privacy Policy",
+                                text = "Privacy & Data Protection",
                                 fontFamily = PlayfairDisplay,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 18.sp,
@@ -903,40 +878,15 @@ fun SettingsDialog(
                         }
 
                         Text(
-                            text = "• No personal accounts or tracking: Khabarnama does not require registration or collect personal identity data.\n" +
-                                "• On-device preferences: Your selected translation language, prayer city, Hijri adjustment, and recent searches are stored locally on your device.\n" +
-                                "• Direct publisher attribution: RSS feeds and article images are loaded directly from whitelisted publishers. Opening a full story uses Chrome Custom Tabs governed by the publisher's privacy policy.\n" +
-                                "• On-demand translation: Article headlines and summaries are translated on-demand and cached locally in Room for offline reading.",
+                            text = "• No personal accounts or tracking: Khabarnama does not require user registration or collect personal identity data.\n" +
+                                "• On-device preferences: Your selected translation language, prayer city, Hijri calendar adjustment, and recent searches are stored securely on your device.\n" +
+                                "• Direct publisher attribution: RSS dispatches and article images are loaded directly from verified publishers. Opening a full story uses Chrome Custom Tabs governed by the publisher's privacy policy.\n" +
+                                "• Offline reading cache: Article headlines and summaries are cached on your device for fast offline reading.",
                             fontFamily = Inter,
                             fontSize = 13.sp,
                             lineHeight = 20.sp,
                             color = SoftGrey
                         )
-
-                        OutlinedButton(
-                            onClick = { BrowserUtil.openCustomTab(context, PRIVACY_POLICY_URL) },
-                            shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, DeepEmerald),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = 48.dp)
-                                .testTag("privacy_policy_link_button")
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
-                                contentDescription = "Open Privacy Policy in browser",
-                                tint = DeepEmerald,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Read Privacy Policy Online",
-                                fontFamily = Inter,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp,
-                                color = DeepEmerald
-                            )
-                        }
                     }
                 }
             }

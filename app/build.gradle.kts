@@ -8,8 +8,8 @@ plugins {
   alias(libs.plugins.google.services)
 }
 
-// Single constant for the application ID — update this value before final Google Play release
-val APP_APPLICATION_ID = "com.aistudio.urdunews.kmqv"
+// Permanent Google Play Store package identifier for Khabarnama
+val APP_APPLICATION_ID = "com.khabarnama.news"
 
 android {
   namespace = "com.example"
@@ -20,7 +20,7 @@ android {
     minSdk = 26
     targetSdk = 36
     versionCode = 1
-    versionName = "1.0"
+    versionName = "1.0.0"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
   }

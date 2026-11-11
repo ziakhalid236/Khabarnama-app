@@ -182,16 +182,14 @@ class NewsViewModel @JvmOverloads constructor(
         val requestId = activeRequestId.incrementAndGet()
 
         reloadJob = viewModelScope.launch {
+            repository.seedInitialArticlesIfEmpty()
             val cachedCount = repository.getCachedArticleCount()
-            if (cachedCount == 0) {
-                repository.seedInitialArticlesIfEmpty()
+            if (cachedCount > 0) {
+                _isInitialLoading.value = false
+                reloadFromCacheInternal(requestId)
             }
 
-            // Immediately display initial stories without waiting for network!
-            _isInitialLoading.value = false
-            reloadFromCacheInternal(requestId)
-
-            // Live RSS network sync in background (takes only 2-4 seconds)
+            // Live RSS network sync in background
             val status = repository.syncFromRemote()
             if (activeRequestId.get() == requestId) {
                 handleSyncStatus(status)
@@ -601,7 +599,7 @@ class NewsViewModel @JvmOverloads constructor(
         private const val KEY_RECENT_SEARCHES = "recent_search_queries"
         private const val RECENT_SEARCH_DELIMITER = "|||"
         private const val MAX_RECENT_SEARCHES = 6
-        private val DEFAULT_RECENT_SEARCHES = listOf("Ramadan", "Pakistan Economy", "Makkah", "Scholars")
+        private val DEFAULT_RECENT_SEARCHES = emptyList<String>()
         const val SEARCH_DEBOUNCE_MS = 300L
     }
 }

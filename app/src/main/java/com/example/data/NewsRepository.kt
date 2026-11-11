@@ -61,67 +61,16 @@ class DefaultNewsRepository(
 ) : NewsRepository {
 
     override suspend fun seedInitialArticlesIfEmpty(): Boolean = withContext(Dispatchers.IO) {
-        val count = articleDao.getTotalCount()
-        if (count > 0 || context == null) return@withContext false
-
-        try {
-            val jsonString = context.assets.open("initial_news_seed.json").bufferedReader().use { it.readText() }
-            val jsonArray = JSONArray(jsonString)
-            val articles = mutableListOf<ArticleEntity>()
-            val translations = mutableListOf<ArticleTranslationEntity>()
-
-            for (i in 0 until jsonArray.length()) {
-                val obj = jsonArray.getJSONObject(i)
-                val id = obj.getString("id")
-                val article = ArticleEntity(
-                    id = id,
-                    normalizedUrl = obj.getString("normalizedUrl"),
-                    normalizedTitle = obj.getString("normalizedTitle"),
-                    title = obj.getString("title"),
-                    summary = obj.getString("summary"),
-                    category = obj.getString("category"),
-                    islamicSection = if (obj.isNull("islamicSection")) null else obj.getString("islamicSection"),
-                    imageUrl = obj.getString("imageUrl"),
-                    sourceName = obj.getString("sourceName"),
-                    sourceUrl = obj.getString("sourceUrl"),
-                    publishedAt = obj.getLong("publishedAt"),
-                    isIslamicSource = obj.getBoolean("isIslamicSource"),
-                    isScholarlySource = obj.optBoolean("isScholarlySource", false)
-                )
-                articles.add(article)
-
-                if (obj.has("translations")) {
-                    val transObj = obj.getJSONObject("translations")
-                    val keys = transObj.keys()
-                    while (keys.hasNext()) {
-                        val langCode = keys.next()
-                        val langContent = transObj.getJSONObject(langCode)
-                        translations.add(
-                            ArticleTranslationEntity(
-                                articleId = id,
-                                languageCode = langCode,
-                                translatedTitle = langContent.getString("title"),
-                                translatedSummary = langContent.getString("summary")
-                            )
-                        )
-                    }
-                }
-            }
-
-            if (articles.isNotEmpty()) {
-                articleDao.insertArticles(articles)
-                if (translations.isNotEmpty()) {
-                    articleDao.insertTranslations(translations)
-                }
-                return@withContext true
-            }
-        } catch (_: Exception) {
+        runCatching {
+            articleDao.deleteDemoSeedArticles()
+            articleDao.deleteOrphanTranslations()
         }
         false
     }
 
     override suspend fun syncFromRemote(): SyncStatus = withContext(Dispatchers.IO) {
         try {
+            articleDao.deleteDemoSeedArticles()
             val fetched = remoteSource.fetchLatestArticles()
             if (fetched.isNotEmpty()) {
                 val deduplicatedBatch = RssRemoteNewsSource.deduplicateArticles(fetched)

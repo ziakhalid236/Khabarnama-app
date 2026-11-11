@@ -103,7 +103,6 @@ fun NotificationsPage(
     onMarkAllRead: () -> Unit,
     onNotificationArticleClick: (NewsArticle) -> Unit,
     onToggleNotifications: (Boolean) -> Unit,
-    onSendTestNotification: () -> Unit,
     onBackToHome: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -329,8 +328,7 @@ fun NotificationsPage(
                 item(key = "push_alerts_control_card") {
                     PushAlertControlBanner(
                         notificationsEnabled = notificationsEnabled,
-                        onToggleNotifications = onToggleNotifications,
-                        onSendTestNotification = onSendTestNotification
+                        onToggleNotifications = onToggleNotifications
                     )
                 }
 
@@ -392,8 +390,7 @@ fun NotificationsPage(
 @Composable
 private fun PushAlertControlBanner(
     notificationsEnabled: Boolean,
-    onToggleNotifications: (Boolean) -> Unit,
-    onSendTestNotification: () -> Unit
+    onToggleNotifications: (Boolean) -> Unit
 ) {
     Surface(
         color = PureWhite,
@@ -402,7 +399,7 @@ private fun PushAlertControlBanner(
             .fillMaxWidth()
             .border(1.dp, if (notificationsEnabled) DeepEmerald.copy(alpha = 0.35f) else WarmBorder, RoundedCornerShape(18.dp))
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
@@ -414,74 +411,46 @@ private fun PushAlertControlBanner(
                     )
                 )
                 .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier.weight(1f)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        imageVector = if (notificationsEnabled) Icons.Filled.NotificationsActive else Icons.Filled.NotificationsOff,
-                        contentDescription = null,
-                        tint = if (notificationsEnabled) DeepEmerald else SoftGrey,
-                        modifier = Modifier.size(22.dp)
-                    )
-                    Column {
-                        Text(
-                            text = if (notificationsEnabled) "Breaking Push Alerts Active" else "Breaking Push Alerts Muted",
-                            fontFamily = Inter,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = InkPrimary
-                        )
-                        Text(
-                            text = "Instant alerts for Palestine, Islamic, Pakistan & World news",
-                            fontFamily = Inter,
-                            fontSize = 12.sp,
-                            color = SoftGrey
-                        )
-                    }
-                }
-
-                Switch(
-                    checked = notificationsEnabled,
-                    onCheckedChange = onToggleNotifications,
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = DeepEmerald
-                    ),
-                    modifier = Modifier.testTag("notifications_page_toggle")
+                Icon(
+                    imageVector = if (notificationsEnabled) Icons.Filled.NotificationsActive else Icons.Filled.NotificationsOff,
+                    contentDescription = null,
+                    tint = if (notificationsEnabled) DeepEmerald else SoftGrey,
+                    modifier = Modifier.size(22.dp)
                 )
-            }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(GoldTint)
-                        .border(1.dp, GoldBorder, RoundedCornerShape(10.dp))
-                        .clickable { onSendTestNotification() }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                        .testTag("notifications_page_test_alert_btn")
-                ) {
+                Column {
                     Text(
-                        text = "Send Test Push Alert",
+                        text = if (notificationsEnabled) "Breaking Push Alerts Active" else "Breaking Push Alerts Muted",
                         fontFamily = Inter,
-                        fontWeight = FontWeight.SemiBold,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        color = InkPrimary
+                    )
+                    Text(
+                        text = "Instant alerts for Palestine, Islamic, Pakistan & World news",
+                        fontFamily = Inter,
                         fontSize = 12.sp,
-                        color = GoldTextDark
+                        color = SoftGrey
                     )
                 }
             }
+
+            Switch(
+                checked = notificationsEnabled,
+                onCheckedChange = onToggleNotifications,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = DeepEmerald
+                ),
+                modifier = Modifier.testTag("notifications_page_toggle")
+            )
         }
     }
 }
