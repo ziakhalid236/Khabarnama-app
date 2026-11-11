@@ -208,14 +208,17 @@ class GeminiNewsTranslator(
         private const val CLOUD_TRANSLATE_BASE_URL = "https://translate.googleapis.com/translate_a/single"
         private const val FIREBASE_COOLDOWN_MS = 5L * 60L * 1000L // 5 minutes
 
-        fun defaultTranslationHttpClient(): OkHttpClient {
-            return OkHttpClient.Builder()
+        private val SHARED_TRANSLATION_CLIENT: OkHttpClient by lazy {
+            OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(10, TimeUnit.SECONDS)
+                .callTimeout(15, TimeUnit.SECONDS)
                 .followRedirects(true)
                 .followSslRedirects(true)
                 .build()
         }
+
+        fun defaultTranslationHttpClient(): OkHttpClient = SHARED_TRANSLATION_CLIENT
 
         fun parseCloudTranslationJson(jsonBody: String): String? {
             if (jsonBody.isBlank()) return null

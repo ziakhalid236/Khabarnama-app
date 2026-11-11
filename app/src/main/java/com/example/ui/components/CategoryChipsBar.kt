@@ -7,6 +7,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -25,19 +27,19 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BusinessCenter
 import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Mosque
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Public
 import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SportsCricket
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -48,15 +50,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,22 +85,50 @@ import com.example.ui.theme.WarmBorder
 import com.example.ui.theme.WarmOffWhite
 
 /**
- * Returns the dedicated Material icon for each NewsCategory.
+ * Returns the realistic country flag or emblem emoji for each NewsCategory.
+ */
+fun categoryFlagEmoji(category: NewsCategory): String = when (category) {
+    NewsCategory.ALL -> "🌐"
+    NewsCategory.PALESTINE -> "🇵🇸"
+    NewsCategory.ISLAMIC -> "🕋"
+    NewsCategory.PAKISTAN -> "🇵🇰"
+    NewsCategory.SECURITY -> "🛡️"
+    NewsCategory.WORLD -> "🌍"
+    NewsCategory.TECHNOLOGY -> "💻"
+    NewsCategory.BUSINESS -> "📈"
+    NewsCategory.SPORTS -> "🏏"
+}
+
+/**
+ * Returns the realistic flag or emblem emoji for each IslamicSection sub-category.
+ */
+fun islamicSectionEmoji(section: IslamicSection): String = when (section) {
+    IslamicSection.ALL -> "✨"
+    IslamicSection.PALESTINE_QUDS -> "🇵🇸"
+    IslamicSection.MUSLIM_WORLD -> "🌍"
+    IslamicSection.HAJJ_UMRAH -> "🕋"
+    IslamicSection.ISLAMIC_EVENTS -> "🕌"
+    IslamicSection.FATWA_SCHOLARS -> "📚"
+    IslamicSection.RAMADAN_EID -> "🌙"
+}
+
+/**
+ * Returns the dedicated Material icon for each NewsCategory (retained for compatibility).
  */
 fun categoryIcon(category: NewsCategory): ImageVector = when (category) {
     NewsCategory.ALL -> Icons.Default.Newspaper
-    NewsCategory.PALESTINE -> Icons.Default.Flag
+    NewsCategory.PALESTINE -> Icons.Default.LocalFireDepartment
     NewsCategory.ISLAMIC -> Icons.Default.Mosque
     NewsCategory.PAKISTAN -> Icons.Default.Flag
     NewsCategory.SECURITY -> Icons.Default.Security
-    NewsCategory.WORLD -> Icons.Default.Public
+    NewsCategory.WORLD -> Icons.Default.Language
     NewsCategory.TECHNOLOGY -> Icons.Default.Memory
-    NewsCategory.BUSINESS -> Icons.AutoMirrored.Filled.TrendingUp
+    NewsCategory.BUSINESS -> Icons.Default.BusinessCenter
     NewsCategory.SPORTS -> Icons.Default.SportsCricket
 }
 
 /**
- * Returns the dedicated Material icon for each IslamicSection sub-category.
+ * Returns the dedicated Material icon for each IslamicSection sub-category (retained for compatibility).
  */
 fun islamicSectionIcon(section: IslamicSection): ImageVector = when (section) {
     IslamicSection.ALL -> Icons.Default.AutoAwesome
@@ -104,21 +141,102 @@ fun islamicSectionIcon(section: IslamicSection): ImageVector = when (section) {
 }
 
 /**
- * Reusable Category Icon composable for news cards, carousels, and category chips.
+ * Realistic Black & Gold Islamic Emblem Flag/Badge (Black standard with gold border, crescent & star).
+ */
+@Composable
+fun RealisticIslamicBlackEmblem(
+    size: Dp,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(4.dp))
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        Color(0xFF0B0D10),
+                        Color(0xFF181C22),
+                        Color(0xFF0A0C0E)
+                    )
+                )
+            )
+            .border(0.8.dp, Color(0xFFD4AF37), RoundedCornerShape(4.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = this.size.width
+            val h = this.size.height
+            val goldColor = Color(0xFFF5D77F)
+            val richGold = Color(0xFFD4AF37)
+
+            // Subtle top gold ornamental band (Kiswah / Black Standard style)
+            drawRect(
+                color = richGold.copy(alpha = 0.85f),
+                topLeft = Offset(w * 0.12f, h * 0.16f),
+                size = Size(w * 0.76f, h * 0.10f)
+            )
+
+            // Crisp Gold Crescent in the center-lower area
+            val cx = w * 0.48f
+            val cy = h * 0.60f
+            val outerR = minOf(w, h) * 0.26f
+            drawCircle(
+                color = goldColor,
+                radius = outerR,
+                center = Offset(cx, cy)
+            )
+            drawCircle(
+                color = Color(0xFF12151A),
+                radius = outerR * 0.80f,
+                center = Offset(cx + outerR * 0.34f, cy - outerR * 0.12f)
+            )
+
+            // Gold Star next to crescent
+            drawCircle(
+                color = PureWhite,
+                radius = outerR * 0.22f,
+                center = Offset(cx + outerR * 0.56f, cy - outerR * 0.18f)
+            )
+        }
+    }
+}
+
+/**
+ * Realistic Flag or Full-Color Emblem composable for news cards, carousels, and category chips.
+ * Displays real full-color country flags (🇵🇰, 🇵🇸), the Black & Gold Islamic emblem, and vivid category symbols.
  */
 @Composable
 fun CategoryBadgeIcon(
     category: NewsCategory,
-    tint: Color,
-    size: Dp = 13.dp,
+    tint: Color = Color.Unspecified,
+    size: Dp = 15.dp,
     modifier: Modifier = Modifier
 ) {
-    Icon(
-        imageVector = categoryIcon(category),
-        contentDescription = null,
-        tint = tint,
-        modifier = modifier.size(size)
-    )
+    when (category) {
+        NewsCategory.ISLAMIC -> {
+            RealisticIslamicBlackEmblem(
+                size = size,
+                modifier = modifier
+            )
+        }
+        else -> {
+            val emoji = categoryFlagEmoji(category)
+            Box(
+                modifier = modifier.size(size + 3.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = emoji,
+                    style = TextStyle(
+                        fontSize = (size.value * 0.92f).sp,
+                        textAlign = TextAlign.Center,
+                        platformStyle = PlatformTextStyle(includeFontPadding = false)
+                    )
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -159,36 +277,45 @@ fun CategoryChipsBar(
                         val chipBorderColor by animateColorAsState(
                             targetValue = when {
                                 isSelected -> MutedGold
-                                isIslamic -> GoldBorder
+                                isIslamic -> Color(0xFF22262C)
                                 else -> WarmBorder
                             },
                             animationSpec = tween(durationMillis = 200),
                             label = "chip_border_${category.name}"
                         )
                         val chipTextColor by animateColorAsState(
-                            targetValue = if (isSelected) Color.White else InkPrimary,
+                            targetValue = when {
+                                isSelected -> Color.White
+                                isIslamic -> Color(0xFFF5E3B3)
+                                else -> InkPrimary
+                            },
                             animationSpec = tween(durationMillis = 200),
                             label = "chip_text_${category.name}"
                         )
 
                         val cardShape = RoundedCornerShape(14.dp)
-                        val backgroundBrush = if (isSelected) {
-                            Brush.linearGradient(
+                        val backgroundBrush = when {
+                            isIslamic && isSelected -> Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF0A0C0E),
+                                    Color(0xFF1A1E24),
+                                    Color(0xFF0D1117)
+                                )
+                            )
+                            isIslamic -> Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFF12151A),
+                                    Color(0xFF1F242C)
+                                )
+                            )
+                            isSelected -> Brush.linearGradient(
                                 colors = listOf(
                                     Color(0xFF146E5C),
                                     DeepEmerald,
                                     Color(0xFF0A4237)
                                 )
                             )
-                        } else if (isIslamic) {
-                            Brush.linearGradient(
-                                colors = listOf(
-                                    PureWhite,
-                                    GoldTint.copy(alpha = 0.55f)
-                                )
-                            )
-                        } else {
-                            Brush.linearGradient(
+                            else -> Brush.linearGradient(
                                 colors = listOf(
                                     PureWhite,
                                     Color(0xFFFCFBF8)
@@ -197,19 +324,14 @@ fun CategoryChipsBar(
                         }
 
                         val iconBadgeBg = when {
-                            isSelected -> Color.White.copy(alpha = 0.16f)
-                            isIslamic -> GoldTint
-                            else -> EmeraldTint
-                        }
-                        val iconTint = when {
-                            isSelected -> Color(0xFFF5E3B3)
-                            isIslamic -> GoldTextDark
-                            else -> DeepEmerald
+                            isIslamic -> Color(0xFF0B0D10)
+                            isSelected -> Color.White.copy(alpha = 0.20f)
+                            else -> EmeraldTint.copy(alpha = 0.75f)
                         }
 
                         Box(
                             modifier = Modifier
-                                .heightIn(min = 36.dp)
+                                .heightIn(min = 38.dp)
                                 .shadow(
                                     elevation = if (isSelected) 3.dp else 1.dp,
                                     shape = cardShape,
@@ -219,8 +341,8 @@ fun CategoryChipsBar(
                                 .clip(cardShape)
                                 .background(backgroundBrush)
                                 .border(
-                                    width = if (isSelected) 1.2.dp else 1.dp,
-                                    color = chipBorderColor,
+                                    width = if (isSelected || isIslamic) 1.2.dp else 1.dp,
+                                    color = if (isIslamic) MutedGold else chipBorderColor,
                                     shape = cardShape
                                 )
                                 .clickable { onCategorySelected(category) }
@@ -236,41 +358,51 @@ fun CategoryChipsBar(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                // Dedicated Icon Badge inside the Category Mini-Card
+                                // Realistic Flag / Emblem Badge inside the Category Mini-Card
                                 Box(
                                     modifier = Modifier
-                                        .size(24.dp)
+                                        .size(25.dp)
                                         .clip(CircleShape)
                                         .background(iconBadgeBg)
                                         .border(
-                                            width = 0.75.dp,
-                                            color = if (isSelected) MutedGold.copy(alpha = 0.7f) else Color.Transparent,
+                                            width = 0.8.dp,
+                                            color = when {
+                                                isIslamic -> MutedGold
+                                                isSelected -> MutedGold.copy(alpha = 0.75f)
+                                                else -> DeepEmerald.copy(alpha = 0.18f)
+                                            },
                                             shape = CircleShape
                                         ),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(
-                                        imageVector = categoryIcon(category),
-                                        contentDescription = null,
-                                        tint = iconTint,
-                                        modifier = Modifier.size(13.dp)
-                                    )
+                                    if (isIslamic) {
+                                        RealisticIslamicBlackEmblem(size = 15.dp)
+                                    } else {
+                                        Text(
+                                            text = categoryFlagEmoji(category),
+                                            style = TextStyle(
+                                                fontSize = 14.sp,
+                                                textAlign = TextAlign.Center,
+                                                platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                            )
+                                        )
+                                    }
                                 }
 
-                                // Islamic chip also retains its signature muted gold accent dot
+                                // Islamic chip retains its signature gold accent dot
                                 if (isIslamic) {
                                     Box(
                                         modifier = Modifier
                                             .size(5.dp)
                                             .clip(CircleShape)
-                                            .background(if (isSelected) Color(0xFFF5E3B3) else MutedGold)
+                                            .background(Color(0xFFF5D77F))
                                     )
                                 }
 
                                 Text(
                                     text = category.englishLabel,
                                     fontFamily = Inter,
-                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                                    fontWeight = if (isSelected || isIslamic) FontWeight.Bold else FontWeight.SemiBold,
                                     fontSize = 12.5.sp,
                                     color = chipTextColor
                                 )
@@ -303,7 +435,7 @@ fun CategoryChipsBar(
                 }
             }
 
-            // Secondary Islamic Subcategory Mini-Cards with relevant icons and smooth transition
+            // Secondary Islamic Subcategory Mini-Cards with realistic flags/emblems and smooth transition
             AnimatedVisibility(
                 visible = selectedCategory == NewsCategory.ISLAMIC,
                 enter = fadeIn(animationSpec = tween(220)) + expandVertically(animationSpec = tween(220)),
@@ -328,17 +460,17 @@ fun CategoryChipsBar(
                             val isSubSelected = section == selectedIslamicSection
 
                             val subBgColor by animateColorAsState(
-                                targetValue = if (isSubSelected) EmeraldTint else PureWhite,
+                                targetValue = if (isSubSelected) Color(0xFF15191F) else PureWhite,
                                 animationSpec = tween(durationMillis = 200),
                                 label = "sub_chip_bg_${section.name}"
                             )
                             val subBorderColor by animateColorAsState(
-                                targetValue = if (isSubSelected) DeepEmerald else GoldBorder,
+                                targetValue = if (isSubSelected) MutedGold else GoldBorder,
                                 animationSpec = tween(durationMillis = 200),
                                 label = "sub_chip_border_${section.name}"
                             )
                             val subTextColor by animateColorAsState(
-                                targetValue = if (isSubSelected) DeepEmerald else SoftGrey,
+                                targetValue = if (isSubSelected) Color(0xFFF5E3B3) else InkPrimary,
                                 animationSpec = tween(durationMillis = 200),
                                 label = "sub_chip_text_${section.name}"
                             )
@@ -349,7 +481,7 @@ fun CategoryChipsBar(
                                 modifier = Modifier
                                     .heightIn(min = 32.dp)
                                     .shadow(
-                                        elevation = if (isSubSelected) 1.5.dp else 0.5.dp,
+                                        elevation = if (isSubSelected) 2.dp else 0.5.dp,
                                         shape = subShape
                                     )
                                     .clip(subShape)
@@ -372,11 +504,13 @@ fun CategoryChipsBar(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = islamicSectionIcon(section),
-                                        contentDescription = null,
-                                        tint = if (isSubSelected) DeepEmerald else MutedGold,
-                                        modifier = Modifier.size(13.dp)
+                                    Text(
+                                        text = islamicSectionEmoji(section),
+                                        style = TextStyle(
+                                            fontSize = 12.5.sp,
+                                            textAlign = TextAlign.Center,
+                                            platformStyle = PlatformTextStyle(includeFontPadding = false)
+                                        )
                                     )
                                     Text(
                                         text = section.englishLabel,

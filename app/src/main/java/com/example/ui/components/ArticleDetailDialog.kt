@@ -260,6 +260,7 @@ fun ArticleDetailDialog(
                                 val imageRequest = remember(article.imageUrl, context) {
                                     ImageRequest.Builder(context)
                                         .data(article.imageUrl)
+                                        .size(1280, 720)
                                         .crossfade(true)
                                         .memoryCacheKey("detail_img_${article.id}")
                                         .diskCacheKey("detail_img_${article.id}")
@@ -428,7 +429,12 @@ fun ArticleDetailDialog(
                                 modifier = Modifier
                                     .padding(start = 8.dp)
                                     .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isIslamic) EmeraldTint else WarmDivider)
+                                    .background(if (isIslamic) Color(0xFF14181E) else EmeraldTint)
+                                    .border(
+                                        1.dp,
+                                        if (isIslamic) MutedGold else DeepEmerald.copy(alpha = 0.22f),
+                                        RoundedCornerShape(12.dp)
+                                    )
                                     .padding(horizontal = 10.dp, vertical = 4.dp)
                             ) {
                                 Row(
@@ -437,15 +443,15 @@ fun ArticleDetailDialog(
                                 ) {
                                     CategoryBadgeIcon(
                                         category = article.category,
-                                        tint = if (isIslamic) DeepEmerald else SoftGrey,
-                                        size = 13.dp
+                                        tint = if (isIslamic) Color(0xFFF5E3B3) else DeepEmerald,
+                                        size = 14.dp
                                     )
                                     if (isIslamic) {
                                         Box(
                                             modifier = Modifier
                                                 .size(5.dp)
                                                 .clip(CircleShape)
-                                                .background(MutedGold)
+                                                .background(Color(0xFFF5D77F))
                                         )
                                     }
                                     Text(
@@ -453,7 +459,7 @@ fun ArticleDetailDialog(
                                         fontFamily = Inter,
                                         fontWeight = FontWeight.SemiBold,
                                         fontSize = 12.sp,
-                                        color = if (isIslamic) DeepEmerald else SoftGrey
+                                        color = if (isIslamic) Color(0xFFF5E3B3) else DeepEmerald
                                     )
                                 }
                             }

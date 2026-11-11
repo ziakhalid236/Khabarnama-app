@@ -233,6 +233,7 @@ fun FacebookNewsCard(
                         val imageRequest = remember(article.imageUrl, context) {
                             ImageRequest.Builder(context)
                                 .data(article.imageUrl)
+                                .size(960, 540)
                                 .crossfade(true)
                                 .memoryCacheKey("card_img_${article.id}")
                                 .diskCacheKey("card_img_${article.id}")
@@ -389,15 +390,15 @@ fun FacebookNewsCard(
                             )
                         }
 
-                        // Normal-case category pill with category icon
+                        // Normal-case category pill with realistic flag / Black & Gold Islamic emblem
                         Box(
                             modifier = Modifier
                                 .padding(start = 8.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (isIslamic) GoldTint else EmeraldTint)
+                                .background(if (isIslamic) Color(0xFF14181E) else EmeraldTint)
                                 .border(
                                     1.dp,
-                                    if (isIslamic) GoldBorder else DeepEmerald.copy(alpha = 0.22f),
+                                    if (isIslamic) MutedGold else DeepEmerald.copy(alpha = 0.22f),
                                     RoundedCornerShape(12.dp)
                                 )
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
@@ -408,15 +409,15 @@ fun FacebookNewsCard(
                             ) {
                                 CategoryBadgeIcon(
                                     category = article.category,
-                                    tint = if (isIslamic) GoldTextDark else DeepEmerald,
-                                    size = 13.dp
+                                    tint = if (isIslamic) Color(0xFFF5E3B3) else DeepEmerald,
+                                    size = 14.dp
                                 )
                                 if (isIslamic) {
                                     Box(
                                         modifier = Modifier
                                             .size(5.dp)
                                             .clip(CircleShape)
-                                            .background(MutedGold)
+                                            .background(Color(0xFFF5D77F))
                                     )
                                 }
                                 Text(
@@ -424,7 +425,7 @@ fun FacebookNewsCard(
                                     fontFamily = Inter,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.sp,
-                                    color = if (isIslamic) GoldTextDark else DeepEmerald
+                                    color = if (isIslamic) Color(0xFFF5E3B3) else DeepEmerald
                                 )
                             }
                         }

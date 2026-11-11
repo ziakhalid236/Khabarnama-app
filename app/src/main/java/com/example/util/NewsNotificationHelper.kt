@@ -193,24 +193,27 @@ object NewsNotificationHelper {
                 .build()
             imageHttpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return null
-                val bytes = response.body?.bytes() ?: return null
-                if (bytes.isEmpty()) return null
+                val body = response.body ?: return null
+                val contentLength = body.contentLength()
+                if (contentLength > 4L * 1024L * 1024L) return null
+                val bytes = body.bytes()
+                if (bytes.isEmpty() || bytes.size > 4 * 1024 * 1024) return null
 
                 // Decode with bounds check to keep notification bitmap memory-safe (~1024x576)
                 val boundsOpts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size, boundsOpts)
                 var sampleSize = 1
-                while (boundsOpts.outWidth / sampleSize > 1280 || boundsOpts.outHeight / sampleSize > 720) {
+                while (boundsOpts.outWidth / sampleSize > 1024 || boundsOpts.outHeight / sampleSize > 576) {
                     sampleSize *= 2
                 }
 
                 val decodeOpts = BitmapFactory.Options().apply {
                     inSampleSize = sampleSize
-                    inPreferredConfig = Bitmap.Config.ARGB_8888
+                    inPreferredConfig = Bitmap.Config.RGB_565
                 }
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size, decodeOpts)
             }
-        } catch (_: Exception) {
+        } catch (_: Throwable) {
             null
         }
     }

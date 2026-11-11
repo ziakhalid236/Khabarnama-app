@@ -112,12 +112,15 @@ class RssRemoteNewsSource(
                     recordFeedOutcome(source.feedUrl, succeeded = false, nowMs = now)
                     return emptyList()
                 }
-                response.body?.string() ?: run {
+                val charStream = response.body?.charStream() ?: run {
                     recordFeedOutcome(source.feedUrl, succeeded = false, nowMs = now)
                     return emptyList()
                 }
+                readTextUpToLimit(charStream, MAX_RSS_XML_CHARS)
             }
-        } catch (e: Exception) {
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (t: Throwable) {
             recordFeedOutcome(source.feedUrl, succeeded = false, nowMs = now)
             return emptyList()
         }
@@ -160,15 +163,30 @@ class RssRemoteNewsSource(
         const val BACKOFF_DURATION_MS = 24L * 3600L * 1000L
         const val MAX_OG_IMAGE_FETCHES_PER_FEED = 5
         const val MAX_OG_HTML_BYTES = 128 * 1024 // 128 KB
+        const val MAX_RSS_XML_CHARS = 1_500_000 // 1.5 MB cap to prevent OOM on giant feeds
 
-        fun defaultOkHttpClient(): OkHttpClient {
-            return OkHttpClient.Builder()
+        private val SHARED_HTTP_CLIENT: OkHttpClient by lazy {
+            OkHttpClient.Builder()
                 .connectTimeout(4, TimeUnit.SECONDS)
                 .readTimeout(4, TimeUnit.SECONDS)
                 .callTimeout(6, TimeUnit.SECONDS)
                 .followRedirects(true)
                 .followSslRedirects(true)
                 .build()
+        }
+
+        fun defaultOkHttpClient(): OkHttpClient = SHARED_HTTP_CLIENT
+
+        fun readTextUpToLimit(reader: Reader, maxChars: Int = MAX_RSS_XML_CHARS): String {
+            val sb = StringBuilder()
+            val buffer = CharArray(8192)
+            while (sb.length < maxChars) {
+                val toRead = minOf(buffer.size, maxChars - sb.length)
+                val readCount = reader.read(buffer, 0, toRead)
+                if (readCount == -1) break
+                sb.append(buffer, 0, readCount)
+            }
+            return sb.toString()
         }
 
         /**
@@ -522,6 +540,27 @@ class RssRemoteNewsSource(
                 )
             )
 
+            val isPakistanMentioned = matchesAnyWordOrPhrase(
+                combined,
+                listOf(
+                    "pakistan", "pakistani", "islamabad", "lahore", "karachi", "peshawar",
+                    "quetta", "rawalpindi", "sindh", "punjab", "balochistan", "khyber",
+                    "multan", "faisalabad", "gwadar", "gilgit", "kashmir", "ispr", "nadra",
+                    "fbr", "nepra", "psx", "pkr", "rupee"
+                )
+            )
+
+            val isForeignWorldStoryOnly = !isPakistanMentioned && matchesAnyWordOrPhrase(
+                combined,
+                listOf(
+                    "argentina", "iran", "tehran", "ukraine", "russia", "moscow", "beijing",
+                    "new delhi", "united states", "u.s.", "washington", "pentagon", "nato",
+                    "european union", "britain", "london", "france", "germany", "japan",
+                    "north korea", "south korea", "taiwan", "venezuela", "brazil", "mexico",
+                    "canada", "australia", "syria", "lebanon", "yemen", "sudan"
+                )
+            )
+
             val isIslamicEligible = when {
                 isPoliticalOrConflict -> false
                 source.isScholarlySource -> true
@@ -566,14 +605,8 @@ class RssRemoteNewsSource(
                     )
                 ) -> NewsCategory.BUSINESS
 
-                matchesAnyWordOrPhrase(
-                    combined,
-                    listOf(
-                        "pakistan", "islamabad", "lahore", "karachi", "peshawar",
-                        "quetta", "rawalpindi", "sindh", "punjab", "balochistan", "khyber"
-                    )
-                ) -> NewsCategory.PAKISTAN
-
+                isPakistanMentioned -> NewsCategory.PAKISTAN
+                isForeignWorldStoryOnly -> NewsCategory.WORLD
                 source.category == NewsCategory.ISLAMIC -> NewsCategory.WORLD
                 else -> source.category
             }

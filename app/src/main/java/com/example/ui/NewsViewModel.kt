@@ -459,6 +459,7 @@ class NewsViewModel @JvmOverloads constructor(
                 val key = "${article.id}_${lang.code}"
                 !article.hasTranslation(lang) && key !in failedTranslations && inFlightTranslations.add(key)
             }
+            .take(24)
 
         for (article in candidates) {
             val key = "${article.id}_${lang.code}"
@@ -484,6 +485,8 @@ class NewsViewModel @JvmOverloads constructor(
                             )
                         }
                     }
+                } catch (_: Exception) {
+                    failedTranslations.add(key)
                 } finally {
                     inFlightTranslations.remove(key)
                 }

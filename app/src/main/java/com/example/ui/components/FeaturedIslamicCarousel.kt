@@ -269,6 +269,7 @@ fun FeaturedIslamicCarousel(
                                 val imageRequest = remember(article.imageUrl, context) {
                                     ImageRequest.Builder(context)
                                         .data(article.imageUrl)
+                                        .size(960, 540)
                                         .crossfade(true)
                                         .memoryCacheKey("carousel_img_${article.id}")
                                         .diskCacheKey("carousel_img_${article.id}")
@@ -387,17 +388,26 @@ fun FeaturedIslamicCarousel(
                                         modifier = Modifier
                                             .padding(start = 8.dp)
                                             .clip(RoundedCornerShape(10.dp))
-                                            .background(GoldTint)
-                                            .border(1.dp, GoldBorder, RoundedCornerShape(10.dp))
-                                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                                            .background(Color(0xFF14181E))
+                                            .border(1.dp, MutedGold, RoundedCornerShape(10.dp))
+                                            .padding(horizontal = 8.dp, vertical = 3.dp)
                                     ) {
-                                        Text(
-                                            text = section.englishLabel,
-                                            fontFamily = Inter,
-                                            fontWeight = FontWeight.Medium,
-                                            fontSize = 12.sp,
-                                            color = GoldTextDark
-                                        )
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = islamicSectionEmoji(section),
+                                                fontSize = 11.5.sp
+                                            )
+                                            Text(
+                                                text = section.englishLabel,
+                                                fontFamily = Inter,
+                                                fontWeight = FontWeight.Medium,
+                                                fontSize = 11.5.sp,
+                                                color = Color(0xFFF5E3B3)
+                                            )
+                                        }
                                     }
                                 }
                             }
