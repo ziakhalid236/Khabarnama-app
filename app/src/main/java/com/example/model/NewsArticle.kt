@@ -30,12 +30,14 @@ enum class NewsCategory(
     val hindiLabel: String
 ) {
     ALL("All", "تمام", "الكل", "Tümü", "सभी"),
+    PALESTINE("Palestine", "فلسطین", "فلسطين", "Filistin", "फिलिस्तीन"),
     ISLAMIC("Islamic", "اسلامی", "إسلامي", "İslami", "इस्लामी"),
     PAKISTAN("Pakistan", "پاکستان", "باكستان", "Pakistan", "पाकिस्तान"),
+    SECURITY("Security", "سکیورٹی و دفاع", "الأمن والدفاع", "Güvenlik", "सुरक्षा"),
     WORLD("World", "دنیا", "العالم", "Dünya", "विश्व"),
+    TECHNOLOGY("Tech & AI", "ٹیکنالوجی و اے آئی", "التكنولوجيا والذكاء الاصطناعي", "Teknoloji ve Yapay Zeka", "तकनीक और एआई"),
     BUSINESS("Business", "کاروبار", "الأعمال", "Ekonomi", "व्यापार"),
-    SPORTS("Sports", "کھیل", "الرياضة", "Spor", "खेल"),
-    TECHNOLOGY("Technology", "ٹیکنالوجی", "التكنولوجيا", "Teknoloji", "तकनीक");
+    SPORTS("Sports", "کھیل", "الرياضة", "Spor", "खेल");
 
     fun getLabel(lang: AppLanguage): String = when (lang) {
         AppLanguage.ENGLISH -> englishLabel
@@ -60,6 +62,7 @@ enum class IslamicSection(
     val hindiLabel: String
 ) {
     ALL("All Islamic", "تمام اسلامی", "كل الإسلاميات", "Tüm İslami", "सभी इस्लामी"),
+    PALESTINE_QUDS("Palestine & Al-Quds", "فلسطین و القدس", "فلسطين والقدس", "Filistin ve Kudüs", "फिलिस्तीन और अल-कुद्स"),
     MUSLIM_WORLD("Muslim World", "مسلم امہ", "العالم الإسلامي", "İslam Dünyası", "मुस्लिम जगत"),
     HAJJ_UMRAH("Hajj & Umrah", "حج و عمرہ", "الحج والعمرة", "Hac ve Umre", "हज और उमरा"),
     ISLAMIC_EVENTS("Islamic Events", "اسلامی تقریبات", "المناسبات الإسلامية", "İslami Etkinlikler", "इस्लामी आयोजन"),

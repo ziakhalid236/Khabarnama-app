@@ -502,6 +502,26 @@ class RssRemoteNewsSource(
                 )
             )
 
+            val isPalestineStory = source.category == NewsCategory.PALESTINE || matchesAnyWordOrPhrase(
+                combined,
+                listOf(
+                    "palestine", "palestinian", "palestinians", "gaza", "gazan", "gazans", "rafah",
+                    "khan younis", "jabalia", "west bank", "al-quds", "jerusalem", "al-aqsa", "unrwa",
+                    "jenin", "ramallah", "nuseirat", "beit lahia", "deir al-balah"
+                )
+            )
+
+            val isSecurityStory = matchesAnyWordOrPhrase(
+                combined,
+                listOf(
+                    "security forces", "counter-terrorism", "border security", "military operation",
+                    "cyberattack", "cyber attack", "missile strike", "air strike", "defense minister",
+                    "armed forces", "intelligence agency", "ceasefire violation", "drone attack",
+                    "hostage", "emergency declared", "troops deployed", "artillery fire", "border clash",
+                    "cross-border", "security alert", "militant ambush"
+                )
+            )
+
             val isIslamicEligible = when {
                 isPoliticalOrConflict -> false
                 source.isScholarlySource -> true
@@ -511,7 +531,10 @@ class RssRemoteNewsSource(
             }
 
             val category: NewsCategory = when {
+                isPalestineStory && !isIslamicEligible -> NewsCategory.PALESTINE
                 isIslamicEligible -> NewsCategory.ISLAMIC
+                isPalestineStory -> NewsCategory.PALESTINE
+                isSecurityStory -> NewsCategory.SECURITY
 
                 matchesAnyWordOrPhrase(
                     combined,
@@ -562,6 +585,14 @@ class RssRemoteNewsSource(
             // Classify IslamicSection.
             // CRITICAL RULE: FATWA_SCHOLARS stories must come ONLY from sources with isScholarlySource = true.
             val islamicSection: IslamicSection = when {
+                matchesAnyWordOrPhrase(
+                    combined,
+                    listOf(
+                        "al-quds", "jerusalem", "al-aqsa", "masjid al-aqsa", "dome of the rock",
+                        "palestine", "palestinian"
+                    )
+                ) -> IslamicSection.PALESTINE_QUDS
+
                 matchesAnyWordOrPhrase(
                     combined,
                     listOf(

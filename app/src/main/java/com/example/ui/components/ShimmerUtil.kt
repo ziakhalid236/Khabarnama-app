@@ -136,6 +136,16 @@ fun BrandedSourcePlaceholder(
             Color(0xFF0F5C4D),
             Color(0xFF186858)
         )
+        NewsCategory.PALESTINE -> listOf(
+            Color(0xFF0F3B2E),
+            Color(0xFF165442),
+            Color(0xFF227059)
+        )
+        NewsCategory.SECURITY -> listOf(
+            Color(0xFF202636),
+            Color(0xFF2B354A),
+            Color(0xFF384661)
+        )
     }
 
     Box(

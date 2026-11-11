@@ -55,8 +55,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.SubcomposeAsyncImage
+import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import kotlinx.coroutines.Dispatchers
 import com.example.model.AppLanguage
 import com.example.model.NewsArticle
 import com.example.ui.theme.DeepEmerald
@@ -169,31 +170,45 @@ fun FeaturedIslamicCarousel(
             val isArabic = effectiveLanguage == AppLanguage.ARABIC
             val isRtlText = isUrdu || isArabic
 
-            // Word-boundary truncation state so headlines never cut mid-word
-            var displayTitle by remember(rawTitle, effectiveLanguage) { mutableStateOf(rawTitle) }
+            // Single unified narrative description (eliminates duplicate headline + summary stack)
+            val unifiedStoryText = remember(rawTitle, articleSummary) {
+                val cleanTitle = rawTitle.trim()
+                val cleanSummary = articleSummary.trim()
+                when {
+                    cleanSummary.isBlank() -> cleanTitle
+                    cleanTitle.isBlank() -> cleanSummary
+                    cleanSummary.equals(cleanTitle, ignoreCase = true) -> cleanTitle
+                    cleanSummary.startsWith(cleanTitle, ignoreCase = true) -> cleanSummary
+                    cleanTitle.startsWith(cleanSummary, ignoreCase = true) -> cleanTitle
+                    cleanTitle.endsWith("۔") || cleanTitle.endsWith(".") || cleanTitle.endsWith("!") || cleanTitle.endsWith("؟") ->
+                        "$cleanTitle $cleanSummary"
+                    else ->
+                        "$cleanTitle — $cleanSummary"
+                }
+            }
 
-            val headlineFontFamily = when {
+            val storyFontFamily = when {
                 isUrdu -> NotoNastaliqUrdu
                 isArabic -> NotoNaskhArabic
-                else -> PlayfairDisplay
-            }
-            val bodyFontFamily = when {
-                isUrdu || isArabic -> NotoNaskhArabic
                 else -> Inter
             }
 
-            // Minimum sizes: headline 20sp, summary 15sp, meta text 12sp
-            val headlineFontSize = if (isUrdu) 21.sp else 20.sp
-            val headlineLineHeight = when {
-                isUrdu -> 40.sp
-                isArabic -> 34.sp
-                else -> 28.sp
+            val storyFontSize = when {
+                isUrdu -> 18.sp
+                isArabic -> 16.5.sp
+                else -> 15.sp
             }
-            val bodyFontSize = if (isUrdu) 16.sp else 15.sp
-            val bodyLineHeight = when {
-                isUrdu -> 30.sp
-                isArabic -> 28.sp
+
+            val storyLineHeight = when {
+                isUrdu -> 38.sp
+                isArabic -> 34.sp
                 else -> 24.sp
+            }
+
+            val storyLetterSpacing = when {
+                isUrdu -> 0.35.sp
+                isArabic -> 0.2.sp
+                else -> 0.1.sp
             }
 
             Card(
@@ -248,25 +263,45 @@ fun FeaturedIslamicCarousel(
                                 .clip(RoundedCornerShape(16.dp))
                         ) {
                             if (article.hasValidImage) {
+                                var isCarouselImgLoading by remember(article.imageUrl) { mutableStateOf(true) }
+                                var isCarouselImgError by remember(article.imageUrl) { mutableStateOf(false) }
+
                                 val imageRequest = remember(article.imageUrl, context) {
                                     ImageRequest.Builder(context)
                                         .data(article.imageUrl)
-                                        .crossfade(250)
+                                        .crossfade(true)
+                                        .memoryCacheKey("carousel_img_${article.id}")
+                                        .diskCacheKey("carousel_img_${article.id}")
+                                        .dispatcher(Dispatchers.IO)
+                                        .allowHardware(true)
                                         .build()
                                 }
-                                SubcomposeAsyncImage(
+                                AsyncImage(
                                     model = imageRequest,
                                     contentDescription = rawTitle,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize(),
-                                    loading = { ShimmerPlaceholder() },
-                                    error = {
-                                        BrandedSourcePlaceholder(
-                                            sourceName = article.sourceName,
-                                            category = article.category
-                                        )
+                                    onLoading = {
+                                        isCarouselImgLoading = true
+                                        isCarouselImgError = false
+                                    },
+                                    onSuccess = {
+                                        isCarouselImgLoading = false
+                                        isCarouselImgError = false
+                                    },
+                                    onError = {
+                                        isCarouselImgLoading = false
+                                        isCarouselImgError = true
                                     }
                                 )
+                                if (isCarouselImgLoading) {
+                                    ShimmerPlaceholder()
+                                } else if (isCarouselImgError) {
+                                    BrandedSourcePlaceholder(
+                                        sourceName = article.sourceName,
+                                        category = article.category
+                                    )
+                                }
                             } else {
                                 BrandedSourcePlaceholder(
                                     sourceName = article.sourceName,
@@ -388,51 +423,18 @@ fun FeaturedIslamicCarousel(
                                     horizontalAlignment = Alignment.Start
                                 ) {
                                     Text(
-                                        text = displayTitle,
+                                        text = unifiedStoryText,
                                         style = TextStyle(
-                                            fontFamily = headlineFontFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = headlineFontSize,
-                                            lineHeight = headlineLineHeight,
+                                            fontFamily = storyFontFamily,
+                                            fontWeight = if (isUrdu) FontWeight.Normal else FontWeight.Medium,
+                                            fontSize = storyFontSize,
+                                            lineHeight = storyLineHeight,
+                                            letterSpacing = storyLetterSpacing,
                                             color = InkPrimary,
                                             textAlign = TextAlign.Start,
                                             platformStyle = PlatformTextStyle(includeFontPadding = true)
                                         ),
-                                        maxLines = 3,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.fillMaxWidth(),
-                                        onTextLayout = { layoutResult ->
-                                            if (layoutResult.lineCount >= 3 && layoutResult.isLineEllipsized(2)) {
-                                                val lineEnd = layoutResult.getLineEnd(2, visibleEnd = true)
-                                                if (lineEnd in 1 until displayTitle.length) {
-                                                    val visibleSub = displayTitle.substring(0, lineEnd).trimEnd('…', '.', ' ')
-                                                    val lastSpace = visibleSub.lastIndexOf(' ')
-                                                    if (lastSpace > 0) {
-                                                        val wordAligned = visibleSub.substring(0, lastSpace)
-                                                            .trimEnd(',', ':', ';', '-', ' ') + "…"
-                                                        if (wordAligned != displayTitle) {
-                                                            displayTitle = wordAligned
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    )
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    Text(
-                                        text = articleSummary,
-                                        style = TextStyle(
-                                            fontFamily = bodyFontFamily,
-                                            fontWeight = FontWeight.Normal,
-                                            fontSize = bodyFontSize,
-                                            lineHeight = bodyLineHeight,
-                                            color = SoftGrey,
-                                            textAlign = TextAlign.Start,
-                                            platformStyle = PlatformTextStyle(includeFontPadding = true)
-                                        ),
-                                        maxLines = 3,
+                                        maxLines = 4,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.fillMaxWidth()
                                     )

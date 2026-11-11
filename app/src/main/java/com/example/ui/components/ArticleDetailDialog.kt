@@ -44,7 +44,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,8 +65,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.SubcomposeAsyncImage
+import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import kotlinx.coroutines.Dispatchers
 import com.example.model.AppLanguage
 import com.example.model.NewsArticle
 import com.example.model.NewsCategory
@@ -106,27 +110,44 @@ fun ArticleDetailDialog(
     val isArabic = effectiveLanguage == AppLanguage.ARABIC
     val isRtlText = isUrdu || isArabic
 
-    val headlineFontFamily = when {
+    val unifiedStoryText = remember(articleTitle, articleSummary) {
+        val cleanTitle = articleTitle.trim()
+        val cleanSummary = articleSummary.trim()
+        when {
+            cleanSummary.isBlank() -> cleanTitle
+            cleanTitle.isBlank() -> cleanSummary
+            cleanSummary.equals(cleanTitle, ignoreCase = true) -> cleanTitle
+            cleanSummary.startsWith(cleanTitle, ignoreCase = true) -> cleanSummary
+            cleanTitle.startsWith(cleanSummary, ignoreCase = true) -> cleanTitle
+            cleanTitle.endsWith("۔") || cleanTitle.endsWith(".") || cleanTitle.endsWith("!") || cleanTitle.endsWith("؟") ->
+                "$cleanTitle\n\n$cleanSummary"
+            else ->
+                "$cleanTitle — $cleanSummary"
+        }
+    }
+
+    val storyFontFamily = when {
         isUrdu -> NotoNastaliqUrdu
         isArabic -> NotoNaskhArabic
-        else -> PlayfairDisplay
-    }
-    val bodyFontFamily = when {
-        isUrdu || isArabic -> NotoNaskhArabic
         else -> Inter
     }
 
-    val headlineFontSize = if (isUrdu) 25.sp else 24.sp
-    val headlineLineHeight = when {
-        isUrdu -> 46.sp
-        isArabic -> 40.sp
-        else -> 34.sp
+    val storyFontSize = when {
+        isUrdu -> 20.sp
+        isArabic -> 18.sp
+        else -> 16.sp
     }
-    val bodyFontSize = if (isUrdu) 17.sp else 16.sp
-    val bodyLineHeight = when {
-        isUrdu -> 32.sp
-        isArabic -> 30.sp
+
+    val storyLineHeight = when {
+        isUrdu -> 42.sp
+        isArabic -> 36.sp
         else -> 26.sp
+    }
+
+    val storyLetterSpacing = when {
+        isUrdu -> 0.35.sp
+        isArabic -> 0.2.sp
+        else -> 0.1.sp
     }
 
     val shareArticle = {
@@ -233,25 +254,45 @@ fun ArticleDetailDialog(
                                 .clip(RoundedCornerShape(16.dp))
                         ) {
                             if (article.hasValidImage) {
+                                var isHeroLoading by remember(article.imageUrl) { mutableStateOf(true) }
+                                var isHeroError by remember(article.imageUrl) { mutableStateOf(false) }
+
                                 val imageRequest = remember(article.imageUrl, context) {
                                     ImageRequest.Builder(context)
                                         .data(article.imageUrl)
-                                        .crossfade(250)
+                                        .crossfade(true)
+                                        .memoryCacheKey("detail_img_${article.id}")
+                                        .diskCacheKey("detail_img_${article.id}")
+                                        .dispatcher(Dispatchers.IO)
+                                        .allowHardware(true)
                                         .build()
                                 }
-                                SubcomposeAsyncImage(
+                                AsyncImage(
                                     model = imageRequest,
                                     contentDescription = articleTitle,
                                     contentScale = ContentScale.Crop,
                                     modifier = Modifier.fillMaxSize(),
-                                    loading = { ShimmerPlaceholder() },
-                                    error = {
-                                        BrandedSourcePlaceholder(
-                                            sourceName = article.sourceName,
-                                            category = article.category
-                                        )
+                                    onLoading = {
+                                        isHeroLoading = true
+                                        isHeroError = false
+                                    },
+                                    onSuccess = {
+                                        isHeroLoading = false
+                                        isHeroError = false
+                                    },
+                                    onError = {
+                                        isHeroLoading = false
+                                        isHeroError = true
                                     }
                                 )
+                                if (isHeroLoading) {
+                                    ShimmerPlaceholder()
+                                } else if (isHeroError) {
+                                    BrandedSourcePlaceholder(
+                                        sourceName = article.sourceName,
+                                        category = article.category
+                                    )
+                                }
                             } else {
                                 BrandedSourcePlaceholder(
                                     sourceName = article.sourceName,
@@ -438,32 +479,13 @@ fun ArticleDetailDialog(
                                     horizontalAlignment = Alignment.Start
                                 ) {
                                     Text(
-                                        text = articleTitle,
+                                        text = unifiedStoryText,
                                         style = TextStyle(
-                                            fontFamily = headlineFontFamily,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = headlineFontSize,
-                                            lineHeight = headlineLineHeight,
-                                            color = InkPrimary,
-                                            textAlign = TextAlign.Start,
-                                            platformStyle = PlatformTextStyle(includeFontPadding = true)
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-
-                                    Spacer(modifier = Modifier.height(16.dp))
-
-                                    HorizontalDivider(thickness = 1.dp, color = WarmDivider)
-
-                                    Spacer(modifier = Modifier.height(16.dp))
-
-                                    Text(
-                                        text = articleSummary,
-                                        style = TextStyle(
-                                            fontFamily = bodyFontFamily,
-                                            fontWeight = FontWeight.Normal,
-                                            fontSize = bodyFontSize,
-                                            lineHeight = bodyLineHeight,
+                                            fontFamily = storyFontFamily,
+                                            fontWeight = if (isUrdu) FontWeight.Normal else FontWeight.Medium,
+                                            fontSize = storyFontSize,
+                                            lineHeight = storyLineHeight,
+                                            letterSpacing = storyLetterSpacing,
                                             color = InkPrimary,
                                             textAlign = TextAlign.Start,
                                             platformStyle = PlatformTextStyle(includeFontPadding = true)

@@ -34,12 +34,16 @@ import androidx.compose.material.icons.filled.Mosque
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.NightsStay
 import androidx.compose.material.icons.filled.Public
+import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SportsCricket
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -76,12 +80,14 @@ import com.example.ui.theme.WarmOffWhite
  */
 fun categoryIcon(category: NewsCategory): ImageVector = when (category) {
     NewsCategory.ALL -> Icons.Default.Newspaper
+    NewsCategory.PALESTINE -> Icons.Default.Flag
     NewsCategory.ISLAMIC -> Icons.Default.Mosque
     NewsCategory.PAKISTAN -> Icons.Default.Flag
+    NewsCategory.SECURITY -> Icons.Default.Security
     NewsCategory.WORLD -> Icons.Default.Public
+    NewsCategory.TECHNOLOGY -> Icons.Default.Memory
     NewsCategory.BUSINESS -> Icons.AutoMirrored.Filled.TrendingUp
     NewsCategory.SPORTS -> Icons.Default.SportsCricket
-    NewsCategory.TECHNOLOGY -> Icons.Default.Memory
 }
 
 /**
@@ -89,6 +95,7 @@ fun categoryIcon(category: NewsCategory): ImageVector = when (category) {
  */
 fun islamicSectionIcon(section: IslamicSection): ImageVector = when (section) {
     IslamicSection.ALL -> Icons.Default.AutoAwesome
+    IslamicSection.PALESTINE_QUDS -> Icons.Default.Mosque
     IslamicSection.MUSLIM_WORLD -> Icons.Default.Public
     IslamicSection.HAJJ_UMRAH -> Icons.Default.Mosque
     IslamicSection.ISLAMIC_EVENTS -> Icons.Default.Event
@@ -273,7 +280,10 @@ fun CategoryChipsBar(
                 }
 
                 // Soft right-edge fade indicating more horizontally scrollable category cards
-                if (scrollState.canScrollForward || scrollState.maxValue == 0) {
+                val showRightFade by remember {
+                    derivedStateOf { scrollState.canScrollForward || scrollState.maxValue == 0 }
+                }
+                if (showRightFade) {
                     Box(
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
@@ -380,7 +390,10 @@ fun CategoryChipsBar(
                         }
                     }
 
-                    if (subScrollState.canScrollForward || subScrollState.maxValue == 0) {
+                    val showSubRightFade by remember {
+                        derivedStateOf { subScrollState.canScrollForward || subScrollState.maxValue == 0 }
+                    }
+                    if (showSubRightFade) {
                         Box(
                             modifier = Modifier
                                 .align(Alignment.CenterEnd)

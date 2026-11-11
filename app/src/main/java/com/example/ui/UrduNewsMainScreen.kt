@@ -96,6 +96,7 @@ import com.example.ui.components.CategoryChipsBar
 import com.example.ui.components.FacebookNewsCard
 import com.example.ui.components.FeaturedIslamicCarousel
 import com.example.ui.components.ImageSourceBottomSheet
+import com.example.ui.components.IslamicPortalHeaderCard
 import com.example.ui.components.KhabarnamaBottomNavBar
 import com.example.ui.components.LanguageSelectDialog
 import com.example.ui.components.NavTab
@@ -229,16 +230,23 @@ private fun MainNewsContent(
     }
 
     // Restore header whenever user reaches the very top of the list
-    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
-        if (listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0) {
+    // Uses derivedStateOf so that rapid scrolling does NOT trigger LaunchedEffect on every pixel offset change!
+    val isScrolledToTop by remember {
+        derivedStateOf {
+            listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
+        }
+    }
+
+    LaunchedEffect(isScrolledToTop) {
+        if (isScrolledToTop) {
             headerOffsetPx = 0f
         }
     }
 
     // The app shell ALWAYS remains LTR English
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        // Infinite scroll detection
-        val shouldLoadMore = remember {
+        // Infinite scroll detection using derivedStateOf
+        val shouldLoadMore by remember {
             derivedStateOf {
                 val totalItems = listState.layoutInfo.totalItemsCount
                 val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
@@ -246,13 +254,32 @@ private fun MainNewsContent(
             }
         }
 
-        LaunchedEffect(shouldLoadMore.value, hasMore, isLoadingMore) {
-            if (shouldLoadMore.value && hasMore && !isLoadingMore) {
+        LaunchedEffect(shouldLoadMore, hasMore, isLoadingMore) {
+            if (shouldLoadMore && hasMore && !isLoadingMore) {
                 viewModel.loadMore()
             }
         }
 
-        val headerHeightDp = with(LocalDensity.current) { headerHeightPx.toDp() }
+        val density = LocalDensity.current
+        val topContentPaddingDp by remember(density) {
+            derivedStateOf {
+                val hDp = with(density) { headerHeightPx.toDp() }
+                if (hDp > 0.dp) hDp + 8.dp else 120.dp
+            }
+        }
+        val topDialogPaddingDp by remember(density) {
+            derivedStateOf {
+                val hDp = with(density) { headerHeightPx.toDp() }
+                if (hDp > 0.dp) hDp + 16.dp else 120.dp
+            }
+        }
+
+        // Header shadow elevation derived state: only triggers recomposition when switching between 0.dp and 3.dp!
+        val headerShadowElevation by remember {
+            derivedStateOf {
+                if (headerOffsetPx < 0f) 3.dp else 0.dp
+            }
+        }
 
         Box(
             modifier = modifier
@@ -312,7 +339,7 @@ private fun MainNewsContent(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(
-                                        top = if (headerHeightDp > 0.dp) headerHeightDp + 8.dp else 120.dp,
+                                        top = topContentPaddingDp,
                                         start = 16.dp,
                                         end = 16.dp,
                                         bottom = 8.dp
@@ -349,7 +376,7 @@ private fun MainNewsContent(
                             isInitialLoading && articles.isEmpty() -> {
                                 LazyColumn(
                                     contentPadding = PaddingValues(
-                                        top = if (headerHeightDp > 0.dp) headerHeightDp + 8.dp else 120.dp,
+                                        top = topContentPaddingDp,
                                         bottom = 16.dp,
                                         start = 16.dp,
                                         end = 16.dp
@@ -371,7 +398,7 @@ private fun MainNewsContent(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .padding(
-                                            top = if (headerHeightDp > 0.dp) headerHeightDp + 16.dp else 120.dp,
+                                            top = topDialogPaddingDp,
                                             bottom = 24.dp,
                                             start = 24.dp,
                                             end = 24.dp
@@ -469,7 +496,7 @@ private fun MainNewsContent(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .padding(
-                                            top = if (headerHeightDp > 0.dp) headerHeightDp + 16.dp else 120.dp,
+                                            top = topDialogPaddingDp,
                                             bottom = 24.dp,
                                             start = 24.dp,
                                             end = 24.dp
@@ -542,7 +569,7 @@ private fun MainNewsContent(
                                 LazyColumn(
                                     state = listState,
                                     contentPadding = PaddingValues(
-                                        top = if (headerHeightDp > 0.dp) headerHeightDp + 8.dp else 120.dp,
+                                        top = topContentPaddingDp,
                                         bottom = 16.dp,
                                         start = 16.dp,
                                         end = 16.dp
@@ -552,6 +579,17 @@ private fun MainNewsContent(
                                         .fillMaxSize()
                                         .testTag("news_feed_list")
                                 ) {
+                                    // Dedicated Islamic Portal Banner (distinguishes the Islamic page completely from Home)
+                                    if (!isSearchOpen && searchQuery.isBlank() && selectedCategory == NewsCategory.ISLAMIC) {
+                                        item(key = "islamic_portal_header_banner") {
+                                            IslamicPortalHeaderCard(
+                                                hijriDate = hijriDate,
+                                                currentLanguage = currentLanguage,
+                                                onOpenPrayerDialog = { viewModel.showPrayerDialog(true) }
+                                            )
+                                        }
+                                    }
+
                                     // Featured Islamic Highlights Carousel (only in Islamic section when not searching)
                                     val showFeaturedIslamic = !isSearchOpen &&
                                         searchQuery.isBlank() &&
@@ -639,7 +677,7 @@ private fun MainNewsContent(
             // Collapsible Top Header: smoothly slides up on scroll down, glides back down on scroll up
             Surface(
                 color = WarmOffWhite,
-                shadowElevation = if (headerOffsetPx < 0f) 3.dp else 0.dp,
+                shadowElevation = headerShadowElevation,
                 modifier = Modifier
                     .fillMaxWidth()
                     .align(Alignment.TopCenter)

@@ -1,26 +1,76 @@
 [
   {
-    "id": "seed_pak_01",
-    "normalizedUrl": "https://www.dawn.com/news/1892001",
-    "normalizedTitle": "pakistan economic outlook improves with inflation falling to single digits",
-    "title": "Pakistan Economic Outlook Improves with Inflation Falling to Single Digits",
-    "summary": "The State Bank of Pakistan announced that consumer price inflation has dropped to single digits for the first time in three years, supported by fiscal stabilization and agricultural output.",
-    "category": "PAKISTAN",
+    "id": "seed_pal_01",
+    "normalizedUrl": "https://www.palestinechronicle.com/gaza-reconstruction-aid-surge-rafah",
+    "normalizedTitle": "un and red crescent deliver massive humanitarian aid convoys to central gaza",
+    "title": "UN and Red Crescent Deliver Massive Humanitarian Aid Convoys to Central Gaza",
+    "summary": "Medical teams and emergency food shipments reached displaced families across Khan Younis and Deir al-Balah today, bringing essential pediatric supplies and clean water desalination units.",
+    "category": "PALESTINE",
     "islamicSection": null,
-    "imageUrl": "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=800&q=80",
-    "sourceName": "Dawn",
-    "sourceUrl": "https://www.dawn.com/news/1892001",
-    "publishedAt": 1773295200000,
+    "imageUrl": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=800&q=80",
+    "sourceName": "Palestine Chronicle",
+    "sourceUrl": "https://www.palestinechronicle.com/gaza-reconstruction-aid-surge-rafah",
+    "publishedAt": 1773297000000,
     "isIslamicSource": false,
     "isScholarlySource": false,
     "translations": {
       "ur": {
-        "title": "پاکستان کے معاشی منظر نامے میں بہتری، مہنگائی سنگل ڈیجٹ پر آ گئی",
-        "summary": "اسٹیٹ بینک آف پاکستان نے اعلان کیا ہے کہ مالیاتی استحکام اور زرعی پیداوار کی بدولت تین سال میں پہلی بار افراط زر کی شرح سنگل ڈیجٹ پر آ گئی ہے۔"
+        "title": "غزہ میں امدادی قافلوں کی آمد: ہلال احمر اور اقوام متحدہ نے بنیادی ادویات و خوراک پہنچا دی",
+        "summary": "خان یونس اور دیر البلح کے پناہ گزین کیمپوں میں ادویات، بچوں کے لیے ضروری غذائی اشیاء اور پانی صاف کرنے والے فلٹریشن پلانٹس ہنگامی بنیادوں پر تقسیم کیے گئے۔"
       },
       "ar": {
-        "title": "تحسن النظرة الاقتصادية لباكستان مع انخفاض التضخم إلى رقم أحادي",
-        "summary": "أعلن بنك الدولة الباكستاني انخفاض معدل التضخم إلى رقم أحادي للمرة الأولى منذ ثلاث سنوات بفضل الاستقرار المالي والإنتاج الزراعي."
+        "title": "قوافل إغاثية ضخمة تصل وسط قطاع غزة بالتعاون بين الهلال الأحمر والأمم المتحدة",
+        "summary": "فرق طبية وشاحنات مواد غذائية وصلت إلى خان يونس ودير البلح لتوفير الإمدادات الطبية ومحطات تحلية المياه للأسر النازحة."
+      }
+    }
+  },
+  {
+    "id": "seed_sec_01",
+    "normalizedUrl": "https://tribune.com.pk/story/2491001/pakistan-security-forces-conduct-intelligence-operation-border",
+    "normalizedTitle": "security forces neutralize militant network in high intensity border operation",
+    "title": "Security Forces Neutralize Cross-Border Militant Network in Precise Operation",
+    "summary": "Inter-Services Public Relations confirmed security forces conducted an intelligence-based targeted operation in Khyber Pakhtunkhwa, eliminating a high-value hostile network and seizing sophisticated ordnance.",
+    "category": "SECURITY",
+    "islamicSection": null,
+    "imageUrl": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=800&q=80",
+    "sourceName": "The Express Tribune",
+    "sourceUrl": "https://tribune.com.pk/story/2491001/pakistan-security-forces-conduct-intelligence-operation-border",
+    "publishedAt": 1773296000000,
+    "isIslamicSource": false,
+    "isScholarlySource": false,
+    "translations": {
+      "ur": {
+        "title": "سیکیورٹی فورسز کا سرحد پار دہشت گرد نیٹ ورک کے خلاف انٹیلی جنس آپریشن، نیٹ ورک تباہ",
+        "summary": "پاک فوج کے شعبہ تعلقات عامہ (آئی ایس پی آر) کے مطابق خیبر پختونخوا میں انٹیلی جنس پر مبنی کامیاب کارروائی کے دوران دہشت گردوں کا ٹھکانہ تباہ اور جدید اسلحہ برآمد کر لیا گیا۔"
+      },
+      "ar": {
+        "title": "القوات الأمنية تحبط شبكة مسلحة عبر الحدود في عملية دقيقة بمحافظة خيبر",
+        "summary": "أكدت العلاقات العامة للجيش الباكستاني القضاء على شبكة معادية وضبط كميات من الأسلحة المتطورة في عملية استخباراتية دقيقة."
+      }
+    }
+  },
+  {
+    "id": "seed_isl_quds",
+    "normalizedUrl": "https://www.islam21c.com/politics/al-aqsa-sanctuary-firmness-friday-prayers",
+    "normalizedTitle": "hundred thousand worshippers fill blessed al aqsa mosque courtyards for friday prayers",
+    "title": "Over 100,000 Worshippers Gather at Blessed Al-Aqsa Mosque for Friday Prayers",
+    "summary": "Faithful from across Al-Quds, the West Bank, and the 1948 territories peacefully converged upon the sacred courtyards of Masjid Al-Aqsa, emphasizing spiritual unity and steadfast guardianship.",
+    "category": "ISLAMIC",
+    "islamicSection": "PALESTINE_QUDS",
+    "imageUrl": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=800&q=80",
+    "sourceName": "Islam21c",
+    "sourceUrl": "https://www.islam21c.com/politics/al-aqsa-sanctuary-firmness-friday-prayers",
+    "publishedAt": 1773294500000,
+    "isIslamicSource": true,
+    "isScholarlySource": true,
+    "translations": {
+      "ur": {
+        "title": "مسجد اقصی کے روح پرور مناظر: ایک لاکھ سے زائد نمازیوں کی قبلہ اول میں نماز جمعہ کی ادائیگی",
+        "summary": "بیت المقدس، مقبوضہ مغربی کنارے اور گردونواح سے ہزاروں مسلمان قبلہ اول کے صحن میں جمع ہوئے اور اخوت و استقامت کے ساتھ نمازِ جمعہ ادا کی۔"
+      },
+      "ar": {
+        "title": "أكثر من مئة ألف مصلٍ يؤدون صلاة الجمعة في رحاب المسجد الأقصى المبارك",
+        "summary": "توافد آلاف الفلسطينيين من القدس والضفة الغربية والداخل المحتل إلى ساحات الحرم القدسي الشريف في مشهد إيماني مهيب."
       }
     }
   },
@@ -75,127 +125,52 @@
     }
   },
   {
-    "id": "seed_world_01",
-    "normalizedUrl": "https://www.aljazeera.com/news/2026/gaza-humanitarian-aid-corridor-un",
-    "normalizedTitle": "un opens expanded humanitarian aid corridor for gaza",
-    "title": "UN Expands Humanitarian Aid Corridor Delivering Vital Relief",
-    "summary": "International agencies have launched an expanded humanitarian corridor providing medical supplies, food convoys, and clean drinking water to displaced families.",
-    "category": "WORLD",
+    "id": "seed_pak_01",
+    "normalizedUrl": "https://www.dawn.com/news/1892001",
+    "normalizedTitle": "pakistan political stability and parliamentary developments",
+    "title": "Parliamentary Consensus Reached on Key National Security and Governance Reforms",
+    "summary": "Lawmakers from government and opposition benches reached agreement on landmark legislation bolstering border governance, judicial efficiency, and economic coordination.",
+    "category": "PAKISTAN",
     "islamicSection": null,
-    "imageUrl": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=800&q=80",
-    "sourceName": "Al Jazeera",
-    "sourceUrl": "https://www.aljazeera.com/news/2026/gaza-humanitarian-aid-corridor-un",
+    "imageUrl": "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=800&q=80",
+    "sourceName": "Dawn",
+    "sourceUrl": "https://www.dawn.com/news/1892001",
     "publishedAt": 1773289800000,
     "isIslamicSource": false,
     "isScholarlySource": false,
     "translations": {
       "ur": {
-        "title": "اقوام متحدہ کا غزہ کے لیے امدادی راہداری کی توسیع کا اعلان",
-        "summary": "عالمی امدادی اداروں نے ادویات، خوراک اور پینے کے صاف پانی کی فوری ترسیل کے لیے نئی امدادی راہداری قائم کر دی ہے۔"
+        "title": "قومی سلامتی اور عدالتی اصلاحات پر پارلیمنٹ میں حکومتی و اپوزیشن ارکان کا اہم اتفاق رائے",
+        "summary": "قومی اسمبلی میں قانون سازی کے اہم مسودے پر تمام پارلیمانی جماعتوں کے مابین مشترکہ اتفاق، سرحدی نظم و نسق اور عوامی ریلیف ترجیحات میں شامل۔"
       },
       "ar": {
-        "title": "الأمم المتحدة توسع ممر المساعدات الإنسانية لتقديم الإغاثة الحيوية",
-        "summary": "أطلقت الوكالات الدولية ممراً إغاثياً موسعاً لنقل الإمدادات الطبية والقوافل الغذائية والمياه النظيفة."
-      }
-    }
-  },
-  {
-    "id": "seed_pak_02",
-    "normalizedUrl": "https://arynews.tv/pakistan-it-exports-record-high-growth",
-    "normalizedTitle": "pakistan it exports hit record high of 3 8 billion dollars",
-    "title": "Pakistan IT Exports Hit Record High Amid Global Tech Expansion",
-    "summary": "Ministry of Information Technology reports annual software and freelance IT services exports crossed $3.8 billion, driven by international enterprise partnerships.",
-    "category": "PAKISTAN",
-    "islamicSection": null,
-    "imageUrl": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80",
-    "sourceName": "ARY News",
-    "sourceUrl": "https://arynews.tv/pakistan-it-exports-record-high-growth",
-    "publishedAt": 1773288000000,
-    "isIslamicSource": false,
-    "isScholarlySource": false,
-    "translations": {
-      "ur": {
-        "title": "پاکستان کی آئی ٹی برآمدات میں تاریخی اضافہ، 3.8 ارب ڈالر کا نیا ریکارڈ",
-        "summary": "وزارت آئی ٹی کے مطابق پاکستانی سافٹ ویئر اور فری لانس سروسز کی برآمدات 3.8 ارب ڈالر سے تجاوز کر گئی ہیں۔"
-      },
-      "ar": {
-        "title": "صادرات تكنولوجيا المعلومات الباكستانية تسجل رقماً قياسياً جديداً",
-        "summary": "أعلنت وزارة تكنولوجيا المعلومات تجاوز صادرات البرمجيات والخدمات الرقمية 3.8 مليار دولار مدفوعة بالشراكات الدولية."
-      }
-    }
-  },
-  {
-    "id": "seed_sports_01",
-    "normalizedUrl": "https://www.espncricinfo.com/series/icc-champions-trophy-pakistan-semifinal-thriller",
-    "normalizedTitle": "pakistan reaches champions trophy final in dramatic last over win",
-    "title": "Pakistan Reaches Champions Trophy Final in Thrilling Last-Over Finish",
-    "summary": "A sensational fast-bowling spell and composed late-order batting secured a nail-biting victory before an electric crowd at Gaddafi Stadium Lahore.",
-    "category": "SPORTS",
-    "islamicSection": null,
-    "imageUrl": "https://images.unsplash.com/photo-1531415074868-8363328e4697?auto=format&fit=crop&w=800&q=80",
-    "sourceName": "ESPNcricinfo",
-    "sourceUrl": "https://www.espncricinfo.com/series/icc-champions-trophy-pakistan-semifinal-thriller",
-    "publishedAt": 1773286200000,
-    "isIslamicSource": false,
-    "isScholarlySource": false,
-    "translations": {
-      "ur": {
-        "title": "سنسنی خیز آخری اوور: پاکستان چیمپئنز ٹرافی کے فائنل میں پہنچ گیا",
-        "summary": "لاہور کے قذافی اسٹیڈیم میں شاندار فاسٹ باؤلنگ اور اعتماد سے بھرپور بیٹنگ کی بدولت قومی ٹیم نے فائنل کا ٹکٹ کٹوا لیا۔"
-      },
-      "ar": {
-        "title": "باكستان تتأهل لنهائي كأس الأبطال بعد فوز دراماتيكي في الشوط الأخير",
-        "summary": "أداء بطولي في الرميات السريعة وثبات هجومي مكن المنتخب الباكستاني من حسم بطاقة التأهل للنهائي وسط حماس جماهيري كبير."
+        "title": "توافق برلماني واسع في باكستان حول إصلاحات الأمن القومي والحوكمة",
+        "summary": "أحزاب الحكومة والمعارضة تتوصل إلى اتفاق حول تشريعات حاسمة لتعزيز أمن الحدود والتنسيق القضائي والاقتصادي."
       }
     }
   },
   {
     "id": "seed_tech_01",
-    "normalizedUrl": "https://techcrunch.com/2026/on-device-ai-models-revolutionize-mobile-experience",
-    "normalizedTitle": "next gen on device ai models run multimodal workflows with zero latency",
-    "title": "Next-Gen On-Device AI Models Run Multimodal Workflows Locally",
-    "summary": "Silicon advancements enable sub-second voice, vision, and real-time translation models to execute entirely on mobile chipsets without sending data to cloud servers.",
+    "normalizedUrl": "https://techcrunch.com/2026/cyber-security-ai-defense-shields",
+    "normalizedTitle": "next gen autonomous cyber defense shields neutralize critical infrastructure attacks",
+    "title": "Autonomous Cyber Defense Systems Neutralize Zero-Day Attacks in Sub-Seconds",
+    "summary": "Cybersecurity researchers deploy neural anomaly detectors capable of thwarting state-sponsored cyberattacks on power grids, telecommunication hubs, and banking networks without human latency.",
     "category": "TECHNOLOGY",
     "islamicSection": null,
     "imageUrl": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80",
     "sourceName": "TechCrunch",
-    "sourceUrl": "https://techcrunch.com/2026/on-device-ai-models-revolutionize-mobile-experience",
+    "sourceUrl": "https://techcrunch.com/2026/cyber-security-ai-defense-shields",
     "publishedAt": 1773284400000,
     "isIslamicSource": false,
     "isScholarlySource": false,
     "translations": {
       "ur": {
-        "title": "موبائل چپ سیٹ پر آن ڈیوائس مصنوعی ذہانت کے نئے ماڈلز کا انقلاب",
-        "summary": "نئی پروسیسنگ ٹیکنالوجی نے کلاؤڈ کے بغیر موبائل کے اندر ہی ریئل ٹائم ترجمہ اور وائس تجزیہ ممکن بنا دیا ہے۔"
+        "title": "سائبر حملوں اور نیشنل گرڈز کے تحفظ کے لیے خودمختار اے آئی سکیورٹی شیلڈز تیار",
+        "summary": "سائبر سکیورٹی کے ماہرین نے ایسے جدید نیورل ڈیٹیکٹرز متعارف کروائے ہیں جو بجلی کے گرڈز، بینکنگ نیٹ ورکس اور ٹیلی کام پر ہونے والے زیرو ڈے حملوں کو لمحوں میں بے اثر کر دیتے ہیں۔"
       },
       "ar": {
-        "title": "نماذج الذكاء الاصطناعي على الأجهزة المحمولة تحدث ثورة بدون تأخير",
-        "summary": "تطورات المعالجات تتيح تشغيل نماذج الصوت والترجمة الفورية محلياً بالكامل على الهواتف دون الحاجة لخوادم سحابية."
-      }
-    }
-  },
-  {
-    "id": "seed_biz_01",
-    "normalizedUrl": "https://www.bbc.com/news/business-global-energy-transition-investments",
-    "normalizedTitle": "global clean energy investments surpass 2 trillion in record milestone",
-    "title": "Global Clean Energy Investments Surpass $2 Trillion Milestone",
-    "summary": "Solar, wind, and grid battery storage projects witnessed historic capital deployment as emerging economies accelerate green industrial policies.",
-    "category": "BUSINESS",
-    "islamicSection": null,
-    "imageUrl": "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=800&q=80",
-    "sourceName": "BBC News",
-    "sourceUrl": "https://www.bbc.com/news/business-global-energy-transition-investments",
-    "publishedAt": 1773282600000,
-    "isIslamicSource": false,
-    "isScholarlySource": false,
-    "translations": {
-      "ur": {
-        "title": "صاف توانائی میں عالمی سرمایہ کاری 2 ٹریلین ڈالر کی نئی تاریخی سطح پر",
-        "summary": "شمسی توانائی، ہوا اور جدید بیٹری اسٹوریج پروجیکٹس میں ریکارڈ سرمایہ کاری سے گرین انڈسٹری کو زبردست فروغ ملا ہے۔"
-      },
-      "ar": {
-        "title": "الاستثمارات العالمية في الطاقة النظيفة تتجاوز تريليوني دولار",
-        "summary": "مشاريع الطاقة الشمسية وطاقة الرياح تشهد تدفقات رأسمالية تاريخية مع تسريع الاقتصادات للتحول الأخضر."
+        "title": "أنظمة الدفاع السيبراني الذاتية تصد الهجمات الإلكترونية على البنية التحتية",
+        "summary": "باحثون يطورون أنظمة ذكاء اصطناعي قادرة على إحباط الهجمات المعقدة ضد شبكات الطاقة والمصارف في أجزاء من الثانية."
       }
     }
   }

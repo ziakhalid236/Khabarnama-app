@@ -37,7 +37,9 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,8 +58,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.SubcomposeAsyncImage
+import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import kotlinx.coroutines.Dispatchers
 import com.example.model.AppLanguage
 import com.example.model.NewsArticle
 import com.example.model.NewsCategory
@@ -111,29 +114,45 @@ fun FacebookNewsCard(
     val isRtlText = isUrdu || isArabic
     val isIslamic = article.category == NewsCategory.ISLAMIC
 
-    val headlineFontFamily = when {
-        isUrdu -> NotoNastaliqUrdu
-        isArabic -> NotoNaskhArabic
-        else -> PlayfairDisplay
+    // Single unified narrative description (eliminates duplicate headline + summary stack)
+    val unifiedStoryText = remember(articleTitle, articleSummary) {
+        val cleanTitle = articleTitle.trim()
+        val cleanSummary = articleSummary.trim()
+        when {
+            cleanSummary.isBlank() -> cleanTitle
+            cleanTitle.isBlank() -> cleanSummary
+            cleanSummary.equals(cleanTitle, ignoreCase = true) -> cleanTitle
+            cleanSummary.startsWith(cleanTitle, ignoreCase = true) -> cleanSummary
+            cleanTitle.startsWith(cleanSummary, ignoreCase = true) -> cleanTitle
+            cleanTitle.endsWith("۔") || cleanTitle.endsWith(".") || cleanTitle.endsWith("!") || cleanTitle.endsWith("؟") ->
+                "$cleanTitle $cleanSummary"
+            else ->
+                "$cleanTitle — $cleanSummary"
+        }
     }
 
-    val bodyFontFamily = when {
-        isUrdu || isArabic -> NotoNaskhArabic
+    val storyFontFamily = when {
+        isUrdu -> NotoNastaliqUrdu
+        isArabic -> NotoNaskhArabic
         else -> Inter
     }
 
-    // Minimum sizes: headline 20sp, summary 15sp, meta text 12sp; generous line height for Urdu/Arabic
-    val headlineFontSize = if (isUrdu) 21.sp else 20.sp
-    val headlineLineHeight = when {
-        isUrdu -> 40.sp
-        isArabic -> 34.sp
-        else -> 28.sp
+    val storyFontSize = when {
+        isUrdu -> 18.5.sp
+        isArabic -> 17.sp
+        else -> 15.sp
     }
-    val bodyFontSize = if (isUrdu) 16.sp else 15.sp
-    val bodyLineHeight = when {
-        isUrdu -> 30.sp
-        isArabic -> 28.sp
+
+    val storyLineHeight = when {
+        isUrdu -> 39.sp
+        isArabic -> 34.sp
         else -> 24.sp
+    }
+
+    val storyLetterSpacing = when {
+        isUrdu -> 0.35.sp
+        isArabic -> 0.2.sp
+        else -> 0.1.sp
     }
 
     val cardBorderColor = if (isIslamic) GoldBorder else WarmBorder
@@ -208,27 +227,45 @@ fun FacebookNewsCard(
                         .border(0.5.dp, WarmBorder, RoundedCornerShape(16.dp))
                 ) {
                     if (article.hasValidImage) {
+                        var isImageLoading by remember(article.imageUrl) { mutableStateOf(true) }
+                        var isImageError by remember(article.imageUrl) { mutableStateOf(false) }
+
                         val imageRequest = remember(article.imageUrl, context) {
                             ImageRequest.Builder(context)
                                 .data(article.imageUrl)
-                                .crossfade(250)
+                                .crossfade(true)
+                                .memoryCacheKey("card_img_${article.id}")
+                                .diskCacheKey("card_img_${article.id}")
+                                .dispatcher(Dispatchers.IO)
+                                .allowHardware(true)
                                 .build()
                         }
-                        SubcomposeAsyncImage(
+                        AsyncImage(
                             model = imageRequest,
                             contentDescription = articleTitle,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize(),
-                            loading = {
-                                ShimmerPlaceholder()
+                            onLoading = {
+                                isImageLoading = true
+                                isImageError = false
                             },
-                            error = {
-                                BrandedSourcePlaceholder(
-                                    sourceName = article.sourceName,
-                                    category = article.category
-                                )
+                            onSuccess = {
+                                isImageLoading = false
+                                isImageError = false
+                            },
+                            onError = {
+                                isImageLoading = false
+                                isImageError = true
                             }
                         )
+                        if (isImageLoading) {
+                            ShimmerPlaceholder()
+                        } else if (isImageError) {
+                            BrandedSourcePlaceholder(
+                                sourceName = article.sourceName,
+                                category = article.category
+                            )
+                        }
                     } else {
                         BrandedSourcePlaceholder(
                             sourceName = article.sourceName,
@@ -414,35 +451,18 @@ fun FacebookNewsCard(
                             horizontalAlignment = Alignment.Start
                         ) {
                             Text(
-                                text = articleTitle,
+                                text = unifiedStoryText,
                                 style = TextStyle(
-                                    fontFamily = headlineFontFamily,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = headlineFontSize,
-                                    lineHeight = headlineLineHeight,
+                                    fontFamily = storyFontFamily,
+                                    fontWeight = if (isUrdu) FontWeight.Normal else FontWeight.Medium,
+                                    fontSize = storyFontSize,
+                                    lineHeight = storyLineHeight,
+                                    letterSpacing = storyLetterSpacing,
                                     color = InkPrimary,
                                     textAlign = TextAlign.Start,
                                     platformStyle = PlatformTextStyle(includeFontPadding = true)
                                 ),
-                                maxLines = 4,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                text = articleSummary,
-                                style = TextStyle(
-                                    fontFamily = bodyFontFamily,
-                                    fontWeight = FontWeight.Normal,
-                                    fontSize = bodyFontSize,
-                                    lineHeight = bodyLineHeight,
-                                    color = SoftGrey,
-                                    textAlign = TextAlign.Start,
-                                    platformStyle = PlatformTextStyle(includeFontPadding = true)
-                                ),
-                                maxLines = 4,
+                                maxLines = 6,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.fillMaxWidth()
                             )
