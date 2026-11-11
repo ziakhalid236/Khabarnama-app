@@ -390,15 +390,15 @@ fun FacebookNewsCard(
                             )
                         }
 
-                        // Normal-case category pill with realistic flag / Black & Gold Islamic emblem
+                        // Normal-case category pill with realistic flag / White & Black Islamic emblem
                         Box(
                             modifier = Modifier
                                 .padding(start = 8.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (isIslamic) Color(0xFF14181E) else EmeraldTint)
+                                .background(if (isIslamic) Color.White else EmeraldTint)
                                 .border(
                                     1.dp,
-                                    if (isIslamic) MutedGold else DeepEmerald.copy(alpha = 0.22f),
+                                    if (isIslamic) Color.Black else DeepEmerald.copy(alpha = 0.22f),
                                     RoundedCornerShape(12.dp)
                                 )
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
@@ -409,7 +409,7 @@ fun FacebookNewsCard(
                             ) {
                                 CategoryBadgeIcon(
                                     category = article.category,
-                                    tint = if (isIslamic) Color(0xFFF5E3B3) else DeepEmerald,
+                                    tint = if (isIslamic) Color.Black else DeepEmerald,
                                     size = 14.dp
                                 )
                                 if (isIslamic) {
@@ -417,7 +417,7 @@ fun FacebookNewsCard(
                                         modifier = Modifier
                                             .size(5.dp)
                                             .clip(CircleShape)
-                                            .background(Color(0xFFF5D77F))
+                                            .background(Color.Black)
                                     )
                                 }
                                 Text(
@@ -425,7 +425,7 @@ fun FacebookNewsCard(
                                     fontFamily = Inter,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.sp,
-                                    color = if (isIslamic) Color(0xFFF5E3B3) else DeepEmerald
+                                    color = if (isIslamic) Color.Black else DeepEmerald
                                 )
                             }
                         }

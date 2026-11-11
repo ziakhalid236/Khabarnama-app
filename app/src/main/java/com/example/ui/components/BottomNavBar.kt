@@ -1,24 +1,28 @@
 package com.example.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Mosque
-import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Mosque
-import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -29,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -52,21 +57,22 @@ enum class NavTab(
 ) {
     HOME("Home", Icons.Outlined.Home, Icons.Filled.Home),
     ISLAMIC("Islamic", Icons.Outlined.Mosque, Icons.Filled.Mosque),
-    SEARCH("Search", Icons.Outlined.Search, Icons.Filled.Search),
+    NOTIFICATIONS("Notifications", Icons.Outlined.Notifications, Icons.Filled.Notifications),
     SETTINGS("Settings", Icons.Outlined.Settings, Icons.Filled.Settings)
 }
 
 @Composable
 fun KhabarnamaBottomNavBar(
     selectedCategory: NewsCategory,
-    isSearchOpen: Boolean,
+    isNotificationsOpen: Boolean = false,
     isSettingsOpen: Boolean = false,
+    unreadNotificationCount: Int = 0,
     onTabSelected: (NavTab) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currentTab = when {
         isSettingsOpen -> NavTab.SETTINGS
-        isSearchOpen -> NavTab.SEARCH
+        isNotificationsOpen -> NavTab.NOTIFICATIONS
         selectedCategory == NewsCategory.ISLAMIC -> NavTab.ISLAMIC
         else -> NavTab.HOME
     }
@@ -83,7 +89,7 @@ fun KhabarnamaBottomNavBar(
                     .fillMaxWidth()
                     .heightIn(min = 64.dp)
                     .navigationBarsPadding()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -102,21 +108,33 @@ fun KhabarnamaBottomNavBar(
                                 role = Role.Tab
                                 selected = isSelected
                             }
-                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                            .padding(horizontal = 12.dp, vertical = 4.dp)
                             .testTag("nav_tab_${tab.name.lowercase()}")
                     ) {
-                        Icon(
-                            imageVector = if (isSelected) tab.filledIcon else tab.outlinedIcon,
-                            contentDescription = "${tab.title} tab",
-                            tint = if (isSelected) DeepEmerald else SoftGrey,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Box(contentAlignment = Alignment.TopEnd) {
+                            Icon(
+                                imageVector = if (isSelected) tab.filledIcon else tab.outlinedIcon,
+                                contentDescription = "${tab.title} tab",
+                                tint = if (isSelected) DeepEmerald else SoftGrey,
+                                modifier = Modifier.size(24.dp)
+                            )
+
+                            if (tab == NavTab.NOTIFICATIONS && unreadNotificationCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = 4.dp, y = (-2).dp)
+                                        .size(9.dp)
+                                        .clip(CircleShape)
+                                        .background( Color(0xFFD93025) )
+                                )
+                            }
+                        }
 
                         Text(
                             text = tab.title,
                             fontFamily = Inter,
                             fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                            fontSize = 12.sp,
+                            fontSize = 11.5.sp,
                             color = if (isSelected) DeepEmerald else SoftGrey
                         )
                     }

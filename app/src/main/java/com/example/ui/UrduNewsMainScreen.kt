@@ -101,6 +101,7 @@ import com.example.ui.components.KhabarnamaBottomNavBar
 import com.example.ui.components.LanguageSelectDialog
 import com.example.ui.components.NavTab
 import com.example.ui.components.NewsCardSkeleton
+import com.example.ui.components.NotificationsPage
 import com.example.ui.components.PrayerTimesDialog
 import com.example.ui.components.SettingsDialog
 import com.example.ui.components.SplashScreen
@@ -177,6 +178,16 @@ private fun MainNewsContent(
     val isShowingPrayerDialog by viewModel.isShowingPrayerDialog.collectAsStateWithLifecycle()
     val isShowingLanguageDialog by viewModel.isShowingLanguageDialog.collectAsStateWithLifecycle()
     var isShowingSettingsDialog by remember { mutableStateOf(false) }
+    var isNotificationsPageOpen by remember { mutableStateOf(false) }
+    var readNotificationIds by remember { mutableStateOf(setOf<String>()) }
+
+    val unreadNotificationCount by remember(articles, featuredIslamicArticles, readNotificationIds) {
+        derivedStateOf {
+            (articles + featuredIslamicArticles)
+                .distinctBy { it.id }
+                .count { it.id !in readNotificationIds }
+        }
+    }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -290,26 +301,30 @@ private fun MainNewsContent(
                 bottomBar = {
                     KhabarnamaBottomNavBar(
                         selectedCategory = selectedCategory,
-                        isSearchOpen = isSearchOpen,
+                        isNotificationsOpen = isNotificationsPageOpen,
                         isSettingsOpen = isShowingSettingsDialog,
+                        unreadNotificationCount = unreadNotificationCount,
                         onTabSelected = { tab ->
                             when (tab) {
                                 NavTab.HOME -> {
                                     isShowingSettingsDialog = false
+                                    isNotificationsPageOpen = false
                                     viewModel.closeArticleDetail()
                                     viewModel.selectCategory(NewsCategory.ALL)
                                     viewModel.toggleSearchOpen(false)
                                 }
                                 NavTab.ISLAMIC -> {
                                     isShowingSettingsDialog = false
+                                    isNotificationsPageOpen = false
                                     viewModel.closeArticleDetail()
                                     viewModel.selectCategory(NewsCategory.ISLAMIC)
                                     viewModel.toggleSearchOpen(false)
                                 }
-                                NavTab.SEARCH -> {
+                                NavTab.NOTIFICATIONS -> {
                                     isShowingSettingsDialog = false
                                     viewModel.closeArticleDetail()
-                                    viewModel.toggleSearchOpen(true)
+                                    viewModel.toggleSearchOpen(false)
+                                    isNotificationsPageOpen = true
                                 }
                                 NavTab.SETTINGS -> {
                                     viewModel.closeArticleDetail()
@@ -322,17 +337,51 @@ private fun MainNewsContent(
                 containerColor = WarmOffWhite,
                 modifier = Modifier.fillMaxSize()
             ) { innerPadding ->
-                val pullRefreshState = rememberPullToRefreshState()
+                if (isNotificationsPageOpen) {
+                    NotificationsPage(
+                        articles = articles,
+                        featuredIslamicArticles = featuredIslamicArticles,
+                        currentLanguage = currentLanguage,
+                        notificationsEnabled = notificationsEnabled,
+                        readNotificationIds = readNotificationIds,
+                        onMarkAllRead = {
+                            val allIds = (articles + featuredIslamicArticles).map { it.id }.toSet()
+                            readNotificationIds = readNotificationIds + allIds
+                        },
+                        onNotificationArticleClick = { clickedArticle ->
+                            readNotificationIds = readNotificationIds + clickedArticle.id
+                            viewModel.openArticleDetail(clickedArticle)
+                        },
+                        onToggleNotifications = { enabled ->
+                            viewModel.setNotificationsEnabled(enabled)
+                            if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                val hasPermission = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.POST_NOTIFICATIONS
+                                ) == PackageManager.PERMISSION_GRANTED
+                                if (!hasPermission) {
+                                    notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                            }
+                        },
+                        onSendTestNotification = { viewModel.sendTestBreakingNotification() },
+                        onBackToHome = { isNotificationsPageOpen = false },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = innerPadding.calculateBottomPadding())
+                    )
+                } else {
+                    val pullRefreshState = rememberPullToRefreshState()
 
-                PullToRefreshBox(
-                    isRefreshing = isRefreshing,
-                    onRefresh = { viewModel.refreshNews() },
-                    state = pullRefreshState,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = innerPadding.calculateBottomPadding())
-                ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
+                    PullToRefreshBox(
+                        isRefreshing = isRefreshing,
+                        onRefresh = { viewModel.refreshNews() },
+                        state = pullRefreshState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(bottom = innerPadding.calculateBottomPadding())
+                    ) {
+                        Column(modifier = Modifier.fillMaxSize()) {
                         // Offline Banner when showing cached stories without active network
                         if (isOffline && (articles.isNotEmpty() || featuredIslamicArticles.isNotEmpty())) {
                             Box(
@@ -671,69 +720,72 @@ private fun MainNewsContent(
                             }
                         }
                     }
+                    }
                 }
             }
 
-            // Collapsible Top Header: smoothly slides up on scroll down, glides back down on scroll up
-            Surface(
-                color = WarmOffWhite,
-                shadowElevation = headerShadowElevation,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopCenter)
-                    .onGloballyPositioned { coordinates ->
-                        val h = coordinates.size.height.toFloat()
-                        if (h > 0f && headerHeightPx != h) {
-                            headerHeightPx = h
+            // Collapsible Top Header: smoothly slides up on scroll down, glides back down on scroll up (hidden when Notifications page is open)
+            if (!isNotificationsPageOpen) {
+                Surface(
+                    color = WarmOffWhite,
+                    shadowElevation = headerShadowElevation,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .onGloballyPositioned { coordinates ->
+                            val h = coordinates.size.height.toFloat()
+                            if (h > 0f && headerHeightPx != h) {
+                                headerHeightPx = h
+                            }
                         }
-                    }
-                    .offset {
-                        IntOffset(x = 0, y = headerOffsetPx.roundToInt())
-                    }
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    UrduAppBar(
-                        currentLanguage = currentLanguage,
-                        hijriDate = hijriDate,
-                        selectedCity = selectedCity,
-                        isSearchOpen = isSearchOpen,
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = { viewModel.setSearchQuery(it) },
-                        onToggleSearch = { viewModel.toggleSearchOpen(it) },
-                        onOpenPrayerDialog = { viewModel.showPrayerDialog(true) },
-                        onOpenLanguageDialog = { viewModel.showLanguageDialog(true) },
-                        onSearchSubmitted = { viewModel.recordRecentSearch(it) }
-                    )
-
-                    // Hide category chips while searching
-                    AnimatedVisibility(
-                        visible = !isSearchOpen,
-                        enter = fadeIn(tween(200)) + expandVertically(tween(200)),
-                        exit = fadeOut(tween(180)) + shrinkVertically(tween(180))
-                    ) {
-                        CategoryChipsBar(
-                            selectedCategory = selectedCategory,
-                            selectedIslamicSection = selectedIslamicSection,
-                            onCategorySelected = { viewModel.selectCategory(it) },
-                            onIslamicSectionSelected = { viewModel.selectIslamicSection(it) }
-                        )
-                    }
-
-                    // Search Discovery & Recent Searches Panel while searching
-                    AnimatedVisibility(
-                        visible = isSearchOpen,
-                        enter = fadeIn(tween(200)) + expandVertically(tween(200)),
-                        exit = fadeOut(tween(180)) + shrinkVertically(tween(180))
-                    ) {
-                        SearchDiscoveryHeader(
+                        .offset {
+                            IntOffset(x = 0, y = headerOffsetPx.roundToInt())
+                        }
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        UrduAppBar(
+                            currentLanguage = currentLanguage,
+                            hijriDate = hijriDate,
+                            selectedCity = selectedCity,
+                            isSearchOpen = isSearchOpen,
                             searchQuery = searchQuery,
-                            resultCount = articles.size,
-                            recentSearches = recentSearches,
-                            onSelectTopicOrSearch = { viewModel.selectRecentSearch(it) },
-                            onRemoveRecentSearch = { viewModel.removeRecentSearch(it) },
-                            onClearRecentSearches = { viewModel.clearRecentSearches() },
-                            onClearActiveQuery = { viewModel.setSearchQuery("") }
+                            onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                            onToggleSearch = { viewModel.toggleSearchOpen(it) },
+                            onOpenPrayerDialog = { viewModel.showPrayerDialog(true) },
+                            onOpenLanguageDialog = { viewModel.showLanguageDialog(true) },
+                            onSearchSubmitted = { viewModel.recordRecentSearch(it) }
                         )
+
+                        // Hide category chips while searching
+                        AnimatedVisibility(
+                            visible = !isSearchOpen,
+                            enter = fadeIn(tween(200)) + expandVertically(tween(200)),
+                            exit = fadeOut(tween(180)) + shrinkVertically(tween(180))
+                        ) {
+                            CategoryChipsBar(
+                                selectedCategory = selectedCategory,
+                                selectedIslamicSection = selectedIslamicSection,
+                                onCategorySelected = { viewModel.selectCategory(it) },
+                                onIslamicSectionSelected = { viewModel.selectIslamicSection(it) }
+                            )
+                        }
+
+                        // Search Discovery & Recent Searches Panel while searching
+                        AnimatedVisibility(
+                            visible = isSearchOpen,
+                            enter = fadeIn(tween(200)) + expandVertically(tween(200)),
+                            exit = fadeOut(tween(180)) + shrinkVertically(tween(180))
+                        ) {
+                            SearchDiscoveryHeader(
+                                searchQuery = searchQuery,
+                                resultCount = articles.size,
+                                recentSearches = recentSearches,
+                                onSelectTopicOrSearch = { viewModel.selectRecentSearch(it) },
+                                onRemoveRecentSearch = { viewModel.removeRecentSearch(it) },
+                                onClearRecentSearches = { viewModel.clearRecentSearches() },
+                                onClearActiveQuery = { viewModel.setSearchQuery("") }
+                            )
+                        }
                     }
                 }
             }

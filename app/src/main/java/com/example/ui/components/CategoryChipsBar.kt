@@ -50,12 +50,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -73,16 +72,14 @@ import com.example.model.IslamicSection
 import com.example.model.NewsCategory
 import com.example.ui.theme.DeepEmerald
 import com.example.ui.theme.EmeraldTint
-import com.example.ui.theme.GoldBorder
-import com.example.ui.theme.GoldTextDark
-import com.example.ui.theme.GoldTint
 import com.example.ui.theme.InkPrimary
 import com.example.ui.theme.Inter
 import com.example.ui.theme.MutedGold
 import com.example.ui.theme.PureWhite
-import com.example.ui.theme.SoftGrey
 import com.example.ui.theme.WarmBorder
 import com.example.ui.theme.WarmOffWhite
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * Returns the realistic country flag or emblem emoji for each NewsCategory.
@@ -90,7 +87,7 @@ import com.example.ui.theme.WarmOffWhite
 fun categoryFlagEmoji(category: NewsCategory): String = when (category) {
     NewsCategory.ALL -> "🌐"
     NewsCategory.PALESTINE -> "🇵🇸"
-    NewsCategory.ISLAMIC -> "🕋"
+    NewsCategory.ISLAMIC -> "☪"
     NewsCategory.PAKISTAN -> "🇵🇰"
     NewsCategory.SECURITY -> "🛡️"
     NewsCategory.WORLD -> "🌍"
@@ -141,7 +138,9 @@ fun islamicSectionIcon(section: IslamicSection): ImageVector = when (section) {
 }
 
 /**
- * Realistic Black & Gold Islamic Emblem Flag/Badge (Black standard with gold border, crescent & star).
+ * Realistic White & Black Islamic Crescent-and-Star Flag Emblem
+ * Matches the user's reference image: pure white background with a sharp black crescent moon
+ * on the left opening to the right, and a sharp 5-pointed black star on the right.
  */
 @Composable
 fun RealisticIslamicBlackEmblem(
@@ -151,52 +150,77 @@ fun RealisticIslamicBlackEmblem(
     Box(
         modifier = modifier
             .size(size)
-            .clip(RoundedCornerShape(4.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        Color(0xFF0B0D10),
-                        Color(0xFF181C22),
-                        Color(0xFF0A0C0E)
-                    )
-                )
-            )
-            .border(0.8.dp, Color(0xFFD4AF37), RoundedCornerShape(4.dp)),
+            .clip(CircleShape)
+            .background(PureWhite)
+            .border(1.dp, Color(0xFF111111), CircleShape),
         contentAlignment = Alignment.Center
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val w = this.size.width
             val h = this.size.height
-            val goldColor = Color(0xFFF5D77F)
-            val richGold = Color(0xFFD4AF37)
+            val minDim = minOf(w, h)
 
-            // Subtle top gold ornamental band (Kiswah / Black Standard style)
-            drawRect(
-                color = richGold.copy(alpha = 0.85f),
-                topLeft = Offset(w * 0.12f, h * 0.16f),
-                size = Size(w * 0.76f, h * 0.10f)
+            // Draw pure white flag canvas
+            drawCircle(
+                color = Color.White,
+                radius = minDim * 0.48f,
+                center = Offset(w * 0.5f, h * 0.5f)
             )
 
-            // Crisp Gold Crescent in the center-lower area
-            val cx = w * 0.48f
-            val cy = h * 0.60f
-            val outerR = minOf(w, h) * 0.26f
-            drawCircle(
-                color = goldColor,
-                radius = outerR,
-                center = Offset(cx, cy)
-            )
-            drawCircle(
-                color = Color(0xFF12151A),
-                radius = outerR * 0.80f,
-                center = Offset(cx + outerR * 0.34f, cy - outerR * 0.12f)
+            // Sharp Black Crescent Moon using Path.op difference
+            val outerRadius = minDim * 0.35f
+            val outerCenter = Offset(w * 0.46f, h * 0.50f)
+            val innerRadius = minDim * 0.285f
+            val innerCenter = Offset(w * 0.565f, h * 0.475f)
+
+            val outerCircle = Path().apply {
+                addOval(
+                    androidx.compose.ui.geometry.Rect(
+                        center = outerCenter,
+                        radius = outerRadius
+                    )
+                )
+            }
+            val innerCircle = Path().apply {
+                addOval(
+                    androidx.compose.ui.geometry.Rect(
+                        center = innerCenter,
+                        radius = innerRadius
+                    )
+                )
+            }
+            val crescentPath = Path().apply {
+                op(outerCircle, innerCircle, PathOperation.Difference)
+            }
+            drawPath(
+                path = crescentPath,
+                color = Color.Black
             )
 
-            // Gold Star next to crescent
-            drawCircle(
-                color = PureWhite,
-                radius = outerR * 0.22f,
-                center = Offset(cx + outerR * 0.56f, cy - outerR * 0.18f)
+            // Sharp 5-Pointed Black Star inside the crescent opening on the right
+            val starCenterX = w * 0.65f
+            val starCenterY = h * 0.46f
+            val starOuterR = minDim * 0.145f
+            val starInnerR = starOuterR * 0.382f
+            val starPath = Path()
+            val startAngleRad = Math.toRadians(-90.0)
+
+            for (i in 0 until 10) {
+                val r = if (i % 2 == 0) starOuterR else starInnerR
+                val angle = startAngleRad + i * Math.PI / 5.0
+                val px = starCenterX + (r * cos(angle)).toFloat()
+                val py = starCenterY + (r * sin(angle)).toFloat()
+                if (i == 0) {
+                    starPath.moveTo(px, py)
+                } else {
+                    starPath.lineTo(px, py)
+                }
+            }
+            starPath.close()
+
+            drawPath(
+                path = starPath,
+                color = Color.Black
             )
         }
     }
@@ -204,7 +228,7 @@ fun RealisticIslamicBlackEmblem(
 
 /**
  * Realistic Flag or Full-Color Emblem composable for news cards, carousels, and category chips.
- * Displays real full-color country flags (🇵🇰, 🇵🇸), the Black & Gold Islamic emblem, and vivid category symbols.
+ * Displays real full-color country flags (🇵🇰, 🇵🇸), the White & Black Islamic Crescent-and-Star flag, and vivid category symbols.
  */
 @Composable
 fun CategoryBadgeIcon(
@@ -216,7 +240,7 @@ fun CategoryBadgeIcon(
     when (category) {
         NewsCategory.ISLAMIC -> {
             RealisticIslamicBlackEmblem(
-                size = size,
+                size = size + 2.dp,
                 modifier = modifier
             )
         }
@@ -276,8 +300,9 @@ fun CategoryChipsBar(
 
                         val chipBorderColor by animateColorAsState(
                             targetValue = when {
+                                isIslamic && isSelected -> Color.Black
+                                isIslamic -> Color(0xFF1A1A1A)
                                 isSelected -> MutedGold
-                                isIslamic -> Color(0xFF22262C)
                                 else -> WarmBorder
                             },
                             animationSpec = tween(durationMillis = 200),
@@ -285,8 +310,9 @@ fun CategoryChipsBar(
                         )
                         val chipTextColor by animateColorAsState(
                             targetValue = when {
+                                isIslamic && isSelected -> Color.White
+                                isIslamic -> Color.Black
                                 isSelected -> Color.White
-                                isIslamic -> Color(0xFFF5E3B3)
                                 else -> InkPrimary
                             },
                             animationSpec = tween(durationMillis = 200),
@@ -297,15 +323,14 @@ fun CategoryChipsBar(
                         val backgroundBrush = when {
                             isIslamic && isSelected -> Brush.linearGradient(
                                 colors = listOf(
-                                    Color(0xFF0A0C0E),
-                                    Color(0xFF1A1E24),
-                                    Color(0xFF0D1117)
+                                    Color(0xFF111111),
+                                    Color(0xFF222222)
                                 )
                             )
                             isIslamic -> Brush.linearGradient(
                                 colors = listOf(
-                                    Color(0xFF12151A),
-                                    Color(0xFF1F242C)
+                                    Color.White,
+                                    Color(0xFFF7F7F7)
                                 )
                             )
                             isSelected -> Brush.linearGradient(
@@ -324,7 +349,7 @@ fun CategoryChipsBar(
                         }
 
                         val iconBadgeBg = when {
-                            isIslamic -> Color(0xFF0B0D10)
+                            isIslamic -> Color.White
                             isSelected -> Color.White.copy(alpha = 0.20f)
                             else -> EmeraldTint.copy(alpha = 0.75f)
                         }
@@ -341,8 +366,8 @@ fun CategoryChipsBar(
                                 .clip(cardShape)
                                 .background(backgroundBrush)
                                 .border(
-                                    width = if (isSelected || isIslamic) 1.2.dp else 1.dp,
-                                    color = if (isIslamic) MutedGold else chipBorderColor,
+                                    width = if (isSelected || isIslamic) 1.3.dp else 1.dp,
+                                    color = chipBorderColor,
                                     shape = cardShape
                                 )
                                 .clickable { onCategorySelected(category) }
@@ -365,9 +390,9 @@ fun CategoryChipsBar(
                                         .clip(CircleShape)
                                         .background(iconBadgeBg)
                                         .border(
-                                            width = 0.8.dp,
+                                            width = if (isIslamic) 1.dp else 0.8.dp,
                                             color = when {
-                                                isIslamic -> MutedGold
+                                                isIslamic -> Color.Black
                                                 isSelected -> MutedGold.copy(alpha = 0.75f)
                                                 else -> DeepEmerald.copy(alpha = 0.18f)
                                             },
@@ -376,7 +401,7 @@ fun CategoryChipsBar(
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (isIslamic) {
-                                        RealisticIslamicBlackEmblem(size = 15.dp)
+                                        RealisticIslamicBlackEmblem(size = 23.dp)
                                     } else {
                                         Text(
                                             text = categoryFlagEmoji(category),
@@ -389,13 +414,13 @@ fun CategoryChipsBar(
                                     }
                                 }
 
-                                // Islamic chip retains its signature gold accent dot
+                                // Islamic chip retains a crisp black/white accent dot
                                 if (isIslamic) {
                                     Box(
                                         modifier = Modifier
                                             .size(5.dp)
                                             .clip(CircleShape)
-                                            .background(Color(0xFFF5D77F))
+                                            .background(if (isSelected) Color.White else Color.Black)
                                     )
                                 }
 
@@ -435,7 +460,7 @@ fun CategoryChipsBar(
                 }
             }
 
-            // Secondary Islamic Subcategory Mini-Cards with realistic flags/emblems and smooth transition
+            // Secondary Islamic Subcategory Mini-Cards with white & black styling and smooth transition
             AnimatedVisibility(
                 visible = selectedCategory == NewsCategory.ISLAMIC,
                 enter = fadeIn(animationSpec = tween(220)) + expandVertically(animationSpec = tween(220)),
@@ -460,17 +485,17 @@ fun CategoryChipsBar(
                             val isSubSelected = section == selectedIslamicSection
 
                             val subBgColor by animateColorAsState(
-                                targetValue = if (isSubSelected) Color(0xFF15191F) else PureWhite,
+                                targetValue = if (isSubSelected) Color(0xFF111111) else PureWhite,
                                 animationSpec = tween(durationMillis = 200),
                                 label = "sub_chip_bg_${section.name}"
                             )
                             val subBorderColor by animateColorAsState(
-                                targetValue = if (isSubSelected) MutedGold else GoldBorder,
+                                targetValue = if (isSubSelected) Color.Black else Color(0xFF333333),
                                 animationSpec = tween(durationMillis = 200),
                                 label = "sub_chip_border_${section.name}"
                             )
                             val subTextColor by animateColorAsState(
-                                targetValue = if (isSubSelected) Color(0xFFF5E3B3) else InkPrimary,
+                                targetValue = if (isSubSelected) Color.White else Color.Black,
                                 animationSpec = tween(durationMillis = 200),
                                 label = "sub_chip_text_${section.name}"
                             )
@@ -504,14 +529,7 @@ fun CategoryChipsBar(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                                 ) {
-                                    Text(
-                                        text = islamicSectionEmoji(section),
-                                        style = TextStyle(
-                                            fontSize = 12.5.sp,
-                                            textAlign = TextAlign.Center,
-                                            platformStyle = PlatformTextStyle(includeFontPadding = false)
-                                        )
-                                    )
+                                    RealisticIslamicBlackEmblem(size = 14.dp)
                                     Text(
                                         text = section.englishLabel,
                                         fontFamily = Inter,

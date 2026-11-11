@@ -388,24 +388,21 @@ fun FeaturedIslamicCarousel(
                                         modifier = Modifier
                                             .padding(start = 8.dp)
                                             .clip(RoundedCornerShape(10.dp))
-                                            .background(Color(0xFF14181E))
-                                            .border(1.dp, MutedGold, RoundedCornerShape(10.dp))
+                                            .background(Color.White)
+                                            .border(1.dp, Color.Black, RoundedCornerShape(10.dp))
                                             .padding(horizontal = 8.dp, vertical = 3.dp)
                                     ) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                            horizontalArrangement = Arrangement.spacedBy(5.dp)
                                         ) {
-                                            Text(
-                                                text = islamicSectionEmoji(section),
-                                                fontSize = 11.5.sp
-                                            )
+                                            RealisticIslamicBlackEmblem(size = 13.dp)
                                             Text(
                                                 text = section.englishLabel,
                                                 fontFamily = Inter,
-                                                fontWeight = FontWeight.Medium,
+                                                fontWeight = FontWeight.SemiBold,
                                                 fontSize = 11.5.sp,
-                                                color = Color(0xFFF5E3B3)
+                                                color = Color.Black
                                             )
                                         }
                                     }
