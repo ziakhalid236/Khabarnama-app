@@ -290,6 +290,7 @@ class NewsDataLayerTest {
             val testRepo = object : NewsRepository {
                 override suspend fun syncFromRemote(): SyncStatus = SyncStatus.SUCCESS
                 override suspend fun getCachedArticleCount(): Int = allArticles.size
+                override suspend fun seedInitialArticlesIfEmpty(): Boolean = false
                 override suspend fun getFeaturedIslamicArticles(limit: Int): List<com.example.model.NewsArticle> = emptyList()
 
                 override suspend fun getArticlesPage(

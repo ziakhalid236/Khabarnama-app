@@ -305,25 +305,31 @@ fun KhabarnamaWordmark(
             modifier = modifier,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            KhabarnamaBrandMark(size = 38.dp)
-            Spacer(modifier = Modifier.width(10.dp))
-            Column {
+            KhabarnamaBrandMark(size = 30.dp)
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(
+                verticalArrangement = Arrangement.Center
+            ) {
                 Text(
                     text = "Khabarnama",
                     fontFamily = PlayfairDisplay,
                     fontWeight = FontWeight.ExtraBold,
-                    fontSize = 22.sp,
-                    letterSpacing = (-0.35).sp,
-                    lineHeight = 25.sp,
+                    fontSize = 17.sp,
+                    letterSpacing = (-0.2).sp,
+                    lineHeight = 19.sp,
+                    maxLines = 1,
+                    softWrap = false,
                     color = InkPrimary
                 )
                 Text(
                     text = "Global & Islamic Dispatch",
                     fontFamily = Inter,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 11.5.sp,
-                    lineHeight = 15.sp,
-                    letterSpacing = 0.2.sp,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 10.sp,
+                    lineHeight = 12.sp,
+                    letterSpacing = 0.1.sp,
+                    maxLines = 1,
+                    softWrap = false,
                     color = DeepEmerald
                 )
             }

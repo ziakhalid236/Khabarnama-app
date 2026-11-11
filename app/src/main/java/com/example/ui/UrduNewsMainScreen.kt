@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -62,16 +63,25 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.IntOffset
+import kotlin.math.roundToInt
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
@@ -196,9 +206,33 @@ private fun MainNewsContent(
     }
     val listState = rememberLazyListState()
 
-    // Scroll back to the top whenever category, Islamic section, search text, or language changes
+    var headerHeightPx by remember { mutableFloatStateOf(0f) }
+    var headerOffsetPx by remember { mutableFloatStateOf(0f) }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                if (headerHeightPx > 0f) {
+                    val newOffset = (headerOffsetPx + delta).coerceIn(-headerHeightPx, 0f)
+                    headerOffsetPx = newOffset
+                }
+                return Offset.Zero // Let the LazyColumn scroll naturally!
+            }
+        }
+    }
+
+    // Scroll back to the top and restore header whenever category, section, search, or language changes
     LaunchedEffect(selectedCategory, selectedIslamicSection, searchQuery, currentLanguage) {
         listState.scrollToItem(0)
+        headerOffsetPx = 0f
+    }
+
+    // Restore header whenever user reaches the very top of the list
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
+        if (listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0) {
+            headerOffsetPx = 0f
+        }
     }
 
     // The app shell ALWAYS remains LTR English
@@ -218,55 +252,14 @@ private fun MainNewsContent(
             }
         }
 
-        Box(modifier = modifier.fillMaxSize()) {
+        val headerHeightDp = with(LocalDensity.current) { headerHeightPx.toDp() }
+
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .nestedScroll(nestedScrollConnection)
+        ) {
             Scaffold(
-                topBar = {
-                    Column {
-                        UrduAppBar(
-                            currentLanguage = currentLanguage,
-                            hijriDate = hijriDate,
-                            selectedCity = selectedCity,
-                            isSearchOpen = isSearchOpen,
-                            searchQuery = searchQuery,
-                            onSearchQueryChange = { viewModel.setSearchQuery(it) },
-                            onToggleSearch = { viewModel.toggleSearchOpen(it) },
-                            onOpenPrayerDialog = { viewModel.showPrayerDialog(true) },
-                            onOpenLanguageDialog = { viewModel.showLanguageDialog(true) },
-                            onSearchSubmitted = { viewModel.recordRecentSearch(it) }
-                        )
-
-                        // Hide category chips while searching (Item 6)
-                        AnimatedVisibility(
-                            visible = !isSearchOpen,
-                            enter = fadeIn(tween(200)) + expandVertically(tween(200)),
-                            exit = fadeOut(tween(180)) + shrinkVertically(tween(180))
-                        ) {
-                            CategoryChipsBar(
-                                selectedCategory = selectedCategory,
-                                selectedIslamicSection = selectedIslamicSection,
-                                onCategorySelected = { viewModel.selectCategory(it) },
-                                onIslamicSectionSelected = { viewModel.selectIslamicSection(it) }
-                            )
-                        }
-
-                        // Search Discovery & Recent Searches Panel while searching
-                        AnimatedVisibility(
-                            visible = isSearchOpen,
-                            enter = fadeIn(tween(200)) + expandVertically(tween(200)),
-                            exit = fadeOut(tween(180)) + shrinkVertically(tween(180))
-                        ) {
-                            SearchDiscoveryHeader(
-                                searchQuery = searchQuery,
-                                resultCount = articles.size,
-                                recentSearches = recentSearches,
-                                onSelectTopicOrSearch = { viewModel.selectRecentSearch(it) },
-                                onRemoveRecentSearch = { viewModel.removeRecentSearch(it) },
-                                onClearRecentSearches = { viewModel.clearRecentSearches() },
-                                onClearActiveQuery = { viewModel.setSearchQuery("") }
-                            )
-                        }
-                    }
-                },
                 bottomBar = {
                     KhabarnamaBottomNavBar(
                         selectedCategory = selectedCategory,
@@ -310,7 +303,7 @@ private fun MainNewsContent(
                     state = pullRefreshState,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(innerPadding)
+                        .padding(bottom = innerPadding.calculateBottomPadding())
                 ) {
                     Column(modifier = Modifier.fillMaxSize()) {
                         // Offline Banner when showing cached stories without active network
@@ -318,7 +311,12 @@ private fun MainNewsContent(
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    .padding(
+                                        top = if (headerHeightDp > 0.dp) headerHeightDp + 8.dp else 120.dp,
+                                        start = 16.dp,
+                                        end = 16.dp,
+                                        bottom = 8.dp
+                                    )
                                     .clip(RoundedCornerShape(12.dp))
                                     .background(GoldTint)
                                     .border(1.dp, GoldBorder, RoundedCornerShape(12.dp))
@@ -350,7 +348,12 @@ private fun MainNewsContent(
                             // 1. Loading Skeleton State
                             isInitialLoading && articles.isEmpty() -> {
                                 LazyColumn(
-                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                                    contentPadding = PaddingValues(
+                                        top = if (headerHeightDp > 0.dp) headerHeightDp + 8.dp else 120.dp,
+                                        bottom = 16.dp,
+                                        start = 16.dp,
+                                        end = 16.dp
+                                    ),
                                     verticalArrangement = Arrangement.spacedBy(16.dp),
                                     modifier = Modifier
                                         .fillMaxSize()
@@ -367,7 +370,12 @@ private fun MainNewsContent(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .padding(24.dp)
+                                        .padding(
+                                            top = if (headerHeightDp > 0.dp) headerHeightDp + 16.dp else 120.dp,
+                                            bottom = 24.dp,
+                                            start = 24.dp,
+                                            end = 24.dp
+                                        )
                                         .testTag("error_state_box"),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -460,7 +468,12 @@ private fun MainNewsContent(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .padding(24.dp)
+                                        .padding(
+                                            top = if (headerHeightDp > 0.dp) headerHeightDp + 16.dp else 120.dp,
+                                            bottom = 24.dp,
+                                            start = 24.dp,
+                                            end = 24.dp
+                                        )
                                         .testTag("empty_state_box"),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -528,16 +541,21 @@ private fun MainNewsContent(
                             else -> {
                                 LazyColumn(
                                     state = listState,
-                                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
+                                    contentPadding = PaddingValues(
+                                        top = if (headerHeightDp > 0.dp) headerHeightDp + 8.dp else 120.dp,
+                                        bottom = 16.dp,
+                                        start = 16.dp,
+                                        end = 16.dp
+                                    ),
                                     verticalArrangement = Arrangement.spacedBy(16.dp),
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .testTag("news_feed_list")
                                 ) {
-                                    // Featured Islamic News Carousel (top of All and Islamic feeds when not searching)
+                                    // Featured Islamic Highlights Carousel (only in Islamic section when not searching)
                                     val showFeaturedIslamic = !isSearchOpen &&
                                         searchQuery.isBlank() &&
-                                        (selectedCategory == NewsCategory.ALL || selectedCategory == NewsCategory.ISLAMIC) &&
+                                        selectedCategory == NewsCategory.ISLAMIC &&
                                         featuredIslamicArticles.isNotEmpty()
 
                                     if (showFeaturedIslamic) {
@@ -614,6 +632,70 @@ private fun MainNewsContent(
                                 }
                             }
                         }
+                    }
+                }
+            }
+
+            // Collapsible Top Header: smoothly slides up on scroll down, glides back down on scroll up
+            Surface(
+                color = WarmOffWhite,
+                shadowElevation = if (headerOffsetPx < 0f) 3.dp else 0.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.TopCenter)
+                    .onGloballyPositioned { coordinates ->
+                        val h = coordinates.size.height.toFloat()
+                        if (h > 0f && headerHeightPx != h) {
+                            headerHeightPx = h
+                        }
+                    }
+                    .offset {
+                        IntOffset(x = 0, y = headerOffsetPx.roundToInt())
+                    }
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    UrduAppBar(
+                        currentLanguage = currentLanguage,
+                        hijriDate = hijriDate,
+                        selectedCity = selectedCity,
+                        isSearchOpen = isSearchOpen,
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { viewModel.setSearchQuery(it) },
+                        onToggleSearch = { viewModel.toggleSearchOpen(it) },
+                        onOpenPrayerDialog = { viewModel.showPrayerDialog(true) },
+                        onOpenLanguageDialog = { viewModel.showLanguageDialog(true) },
+                        onSearchSubmitted = { viewModel.recordRecentSearch(it) }
+                    )
+
+                    // Hide category chips while searching
+                    AnimatedVisibility(
+                        visible = !isSearchOpen,
+                        enter = fadeIn(tween(200)) + expandVertically(tween(200)),
+                        exit = fadeOut(tween(180)) + shrinkVertically(tween(180))
+                    ) {
+                        CategoryChipsBar(
+                            selectedCategory = selectedCategory,
+                            selectedIslamicSection = selectedIslamicSection,
+                            onCategorySelected = { viewModel.selectCategory(it) },
+                            onIslamicSectionSelected = { viewModel.selectIslamicSection(it) }
+                        )
+                    }
+
+                    // Search Discovery & Recent Searches Panel while searching
+                    AnimatedVisibility(
+                        visible = isSearchOpen,
+                        enter = fadeIn(tween(200)) + expandVertically(tween(200)),
+                        exit = fadeOut(tween(180)) + shrinkVertically(tween(180))
+                    ) {
+                        SearchDiscoveryHeader(
+                            searchQuery = searchQuery,
+                            resultCount = articles.size,
+                            recentSearches = recentSearches,
+                            onSelectTopicOrSearch = { viewModel.selectRecentSearch(it) },
+                            onRemoveRecentSearch = { viewModel.removeRecentSearch(it) },
+                            onClearRecentSearches = { viewModel.clearRecentSearches() },
+                            onClearActiveQuery = { viewModel.setSearchQuery("") }
+                        )
                     }
                 }
             }

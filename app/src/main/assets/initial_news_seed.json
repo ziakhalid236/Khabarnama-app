@@ -1,0 +1,202 @@
+[
+  {
+    "id": "seed_pak_01",
+    "normalizedUrl": "https://www.dawn.com/news/1892001",
+    "normalizedTitle": "pakistan economic outlook improves with inflation falling to single digits",
+    "title": "Pakistan Economic Outlook Improves with Inflation Falling to Single Digits",
+    "summary": "The State Bank of Pakistan announced that consumer price inflation has dropped to single digits for the first time in three years, supported by fiscal stabilization and agricultural output.",
+    "category": "PAKISTAN",
+    "islamicSection": null,
+    "imageUrl": "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=800&q=80",
+    "sourceName": "Dawn",
+    "sourceUrl": "https://www.dawn.com/news/1892001",
+    "publishedAt": 1773295200000,
+    "isIslamicSource": false,
+    "isScholarlySource": false,
+    "translations": {
+      "ur": {
+        "title": "پاکستان کے معاشی منظر نامے میں بہتری، مہنگائی سنگل ڈیجٹ پر آ گئی",
+        "summary": "اسٹیٹ بینک آف پاکستان نے اعلان کیا ہے کہ مالیاتی استحکام اور زرعی پیداوار کی بدولت تین سال میں پہلی بار افراط زر کی شرح سنگل ڈیجٹ پر آ گئی ہے۔"
+      },
+      "ar": {
+        "title": "تحسن النظرة الاقتصادية لباكستان مع انخفاض التضخم إلى رقم أحادي",
+        "summary": "أعلن بنك الدولة الباكستاني انخفاض معدل التضخم إلى رقم أحادي للمرة الأولى منذ ثلاث سنوات بفضل الاستقرار المالي والإنتاج الزراعي."
+      }
+    }
+  },
+  {
+    "id": "seed_isl_01",
+    "normalizedUrl": "https://seekersguidance.org/articles/spirituality/the-power-of-dua-in-difficult-times",
+    "normalizedTitle": "the power of dua in difficult times spiritual steadfastness",
+    "title": "The Power of Dua in Difficult Times: Spiritual Steadfastness",
+    "summary": "Scholarly reflection on relying upon Allah through sincere supplication, cultivating patience (Sabr), and turning hardships into spiritual elevation and tranquility.",
+    "category": "ISLAMIC",
+    "islamicSection": "FATWA_SCHOLARS",
+    "imageUrl": "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?auto=format&fit=crop&w=800&q=80",
+    "sourceName": "SeekersGuidance",
+    "sourceUrl": "https://seekersguidance.org/articles/spirituality/the-power-of-dua-in-difficult-times",
+    "publishedAt": 1773293400000,
+    "isIslamicSource": true,
+    "isScholarlySource": true,
+    "translations": {
+      "ur": {
+        "title": "آزمائش کے لمحات میں دعا کی طاقت اور روحانی استقامت",
+        "summary": "مستند علمائے کرام کی رہنمائی: سچی دعا اور صبر کے ذریعے اللہ تعالیٰ پر توکل، جو مشکلات کو روحانی بلندی اور دلی سکون میں بدل دیتا ہے۔"
+      },
+      "ar": {
+        "title": "قوة الدعاء في الأوقات الصعبة والاستقامة الروحية",
+        "summary": "تأملات علمية حول التوكل على الله بالدعاء الصادق والتحلي بالصبر، وتحويل الشدائد إلى طمأنينة وسكينة."
+      }
+    }
+  },
+  {
+    "id": "seed_isl_02",
+    "normalizedUrl": "https://aboutislam.net/shariah/special-coverage-shariah/hajj-and-umrah-spiritual-journey",
+    "normalizedTitle": "sacred preparations for hajj and umrah spiritual roadmap",
+    "title": "Sacred Preparations for Hajj and Umrah: A Spiritual Roadmap",
+    "summary": "A comprehensive guide on internal spiritual readiness, understanding the rites of Tawaf and Sa'i, and maximizing the blessings of visiting the Holy Sanctuaries.",
+    "category": "ISLAMIC",
+    "islamicSection": "HAJJ_UMRAH",
+    "imageUrl": "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?auto=format&fit=crop&w=800&q=80",
+    "sourceName": "AboutIslam",
+    "sourceUrl": "https://aboutislam.net/shariah/special-coverage-shariah/hajj-and-umrah-spiritual-journey",
+    "publishedAt": 1773291600000,
+    "isIslamicSource": true,
+    "isScholarlySource": true,
+    "translations": {
+      "ur": {
+        "title": "حج و عمرہ کی بابرکت تیاریاں: زائرین کے لیے روحانی رہنمائی",
+        "summary": "طواف اور سعی کے ارکان کی روح، باطنی طہارت اور حرمین شریفین کی باوقار حاضری میں برکات سمیٹنے کا تفصیلی علمی گائیڈ۔"
+      },
+      "ar": {
+        "title": "الاستعدادات الروحية للحج والعمرة: خارطة طريق إيمانية",
+        "summary": "دليل شامل حول الاستعداد القلبي والروحي لأداء مناسك الطواف والسعي ونيل بركات المشاعر المقدسة."
+      }
+    }
+  },
+  {
+    "id": "seed_world_01",
+    "normalizedUrl": "https://www.aljazeera.com/news/2026/gaza-humanitarian-aid-corridor-un",
+    "normalizedTitle": "un opens expanded humanitarian aid corridor for gaza",
+    "title": "UN Expands Humanitarian Aid Corridor Delivering Vital Relief",
+    "summary": "International agencies have launched an expanded humanitarian corridor providing medical supplies, food convoys, and clean drinking water to displaced families.",
+    "category": "WORLD",
+    "islamicSection": null,
+    "imageUrl": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=800&q=80",
+    "sourceName": "Al Jazeera",
+    "sourceUrl": "https://www.aljazeera.com/news/2026/gaza-humanitarian-aid-corridor-un",
+    "publishedAt": 1773289800000,
+    "isIslamicSource": false,
+    "isScholarlySource": false,
+    "translations": {
+      "ur": {
+        "title": "اقوام متحدہ کا غزہ کے لیے امدادی راہداری کی توسیع کا اعلان",
+        "summary": "عالمی امدادی اداروں نے ادویات، خوراک اور پینے کے صاف پانی کی فوری ترسیل کے لیے نئی امدادی راہداری قائم کر دی ہے۔"
+      },
+      "ar": {
+        "title": "الأمم المتحدة توسع ممر المساعدات الإنسانية لتقديم الإغاثة الحيوية",
+        "summary": "أطلقت الوكالات الدولية ممراً إغاثياً موسعاً لنقل الإمدادات الطبية والقوافل الغذائية والمياه النظيفة."
+      }
+    }
+  },
+  {
+    "id": "seed_pak_02",
+    "normalizedUrl": "https://arynews.tv/pakistan-it-exports-record-high-growth",
+    "normalizedTitle": "pakistan it exports hit record high of 3 8 billion dollars",
+    "title": "Pakistan IT Exports Hit Record High Amid Global Tech Expansion",
+    "summary": "Ministry of Information Technology reports annual software and freelance IT services exports crossed $3.8 billion, driven by international enterprise partnerships.",
+    "category": "PAKISTAN",
+    "islamicSection": null,
+    "imageUrl": "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=800&q=80",
+    "sourceName": "ARY News",
+    "sourceUrl": "https://arynews.tv/pakistan-it-exports-record-high-growth",
+    "publishedAt": 1773288000000,
+    "isIslamicSource": false,
+    "isScholarlySource": false,
+    "translations": {
+      "ur": {
+        "title": "پاکستان کی آئی ٹی برآمدات میں تاریخی اضافہ، 3.8 ارب ڈالر کا نیا ریکارڈ",
+        "summary": "وزارت آئی ٹی کے مطابق پاکستانی سافٹ ویئر اور فری لانس سروسز کی برآمدات 3.8 ارب ڈالر سے تجاوز کر گئی ہیں۔"
+      },
+      "ar": {
+        "title": "صادرات تكنولوجيا المعلومات الباكستانية تسجل رقماً قياسياً جديداً",
+        "summary": "أعلنت وزارة تكنولوجيا المعلومات تجاوز صادرات البرمجيات والخدمات الرقمية 3.8 مليار دولار مدفوعة بالشراكات الدولية."
+      }
+    }
+  },
+  {
+    "id": "seed_sports_01",
+    "normalizedUrl": "https://www.espncricinfo.com/series/icc-champions-trophy-pakistan-semifinal-thriller",
+    "normalizedTitle": "pakistan reaches champions trophy final in dramatic last over win",
+    "title": "Pakistan Reaches Champions Trophy Final in Thrilling Last-Over Finish",
+    "summary": "A sensational fast-bowling spell and composed late-order batting secured a nail-biting victory before an electric crowd at Gaddafi Stadium Lahore.",
+    "category": "SPORTS",
+    "islamicSection": null,
+    "imageUrl": "https://images.unsplash.com/photo-1531415074868-8363328e4697?auto=format&fit=crop&w=800&q=80",
+    "sourceName": "ESPNcricinfo",
+    "sourceUrl": "https://www.espncricinfo.com/series/icc-champions-trophy-pakistan-semifinal-thriller",
+    "publishedAt": 1773286200000,
+    "isIslamicSource": false,
+    "isScholarlySource": false,
+    "translations": {
+      "ur": {
+        "title": "سنسنی خیز آخری اوور: پاکستان چیمپئنز ٹرافی کے فائنل میں پہنچ گیا",
+        "summary": "لاہور کے قذافی اسٹیڈیم میں شاندار فاسٹ باؤلنگ اور اعتماد سے بھرپور بیٹنگ کی بدولت قومی ٹیم نے فائنل کا ٹکٹ کٹوا لیا۔"
+      },
+      "ar": {
+        "title": "باكستان تتأهل لنهائي كأس الأبطال بعد فوز دراماتيكي في الشوط الأخير",
+        "summary": "أداء بطولي في الرميات السريعة وثبات هجومي مكن المنتخب الباكستاني من حسم بطاقة التأهل للنهائي وسط حماس جماهيري كبير."
+      }
+    }
+  },
+  {
+    "id": "seed_tech_01",
+    "normalizedUrl": "https://techcrunch.com/2026/on-device-ai-models-revolutionize-mobile-experience",
+    "normalizedTitle": "next gen on device ai models run multimodal workflows with zero latency",
+    "title": "Next-Gen On-Device AI Models Run Multimodal Workflows Locally",
+    "summary": "Silicon advancements enable sub-second voice, vision, and real-time translation models to execute entirely on mobile chipsets without sending data to cloud servers.",
+    "category": "TECHNOLOGY",
+    "islamicSection": null,
+    "imageUrl": "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80",
+    "sourceName": "TechCrunch",
+    "sourceUrl": "https://techcrunch.com/2026/on-device-ai-models-revolutionize-mobile-experience",
+    "publishedAt": 1773284400000,
+    "isIslamicSource": false,
+    "isScholarlySource": false,
+    "translations": {
+      "ur": {
+        "title": "موبائل چپ سیٹ پر آن ڈیوائس مصنوعی ذہانت کے نئے ماڈلز کا انقلاب",
+        "summary": "نئی پروسیسنگ ٹیکنالوجی نے کلاؤڈ کے بغیر موبائل کے اندر ہی ریئل ٹائم ترجمہ اور وائس تجزیہ ممکن بنا دیا ہے۔"
+      },
+      "ar": {
+        "title": "نماذج الذكاء الاصطناعي على الأجهزة المحمولة تحدث ثورة بدون تأخير",
+        "summary": "تطورات المعالجات تتيح تشغيل نماذج الصوت والترجمة الفورية محلياً بالكامل على الهواتف دون الحاجة لخوادم سحابية."
+      }
+    }
+  },
+  {
+    "id": "seed_biz_01",
+    "normalizedUrl": "https://www.bbc.com/news/business-global-energy-transition-investments",
+    "normalizedTitle": "global clean energy investments surpass 2 trillion in record milestone",
+    "title": "Global Clean Energy Investments Surpass $2 Trillion Milestone",
+    "summary": "Solar, wind, and grid battery storage projects witnessed historic capital deployment as emerging economies accelerate green industrial policies.",
+    "category": "BUSINESS",
+    "islamicSection": null,
+    "imageUrl": "https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=800&q=80",
+    "sourceName": "BBC News",
+    "sourceUrl": "https://www.bbc.com/news/business-global-energy-transition-investments",
+    "publishedAt": 1773282600000,
+    "isIslamicSource": false,
+    "isScholarlySource": false,
+    "translations": {
+      "ur": {
+        "title": "صاف توانائی میں عالمی سرمایہ کاری 2 ٹریلین ڈالر کی نئی تاریخی سطح پر",
+        "summary": "شمسی توانائی، ہوا اور جدید بیٹری اسٹوریج پروجیکٹس میں ریکارڈ سرمایہ کاری سے گرین انڈسٹری کو زبردست فروغ ملا ہے۔"
+      },
+      "ar": {
+        "title": "الاستثمارات العالمية في الطاقة النظيفة تتجاوز تريليوني دولار",
+        "summary": "مشاريع الطاقة الشمسية وطاقة الرياح تشهد تدفقات رأسمالية تاريخية مع تسريع الاقتصادات للتحول الأخضر."
+      }
+    }
+  }
+]

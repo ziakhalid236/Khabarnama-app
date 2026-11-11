@@ -105,7 +105,8 @@ fun FeaturedIslamicCarousel(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f, fill = false)
             ) {
                 Box(
                     modifier = Modifier
@@ -115,27 +116,28 @@ fun FeaturedIslamicCarousel(
                 )
 
                 Text(
-                    text = "Featured Islamic Dispatch",
+                    text = "Islamic Highlights",
                     fontFamily = PlayfairDisplay,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = InkPrimary
+                    fontSize = 17.sp,
+                    color = InkPrimary,
+                    maxLines = 1
                 )
             }
 
-            // Small gold-outlined "Featured" label with WCAG AA+ dark gold text
+            // Clean page indicator (e.g. "1 of 4") that never wraps
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(10.dp))
                     .background(GoldTint)
-                    .border(1.dp, MutedGold, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .border(1.dp, GoldBorder, RoundedCornerShape(10.dp))
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
             ) {
                 Text(
-                    text = "Featured",
+                    text = "${pagerState.currentPage + 1} / ${articles.size}",
                     fontFamily = Inter,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize = 12.sp,
+                    fontSize = 11.sp,
                     color = GoldTextDark
                 )
             }

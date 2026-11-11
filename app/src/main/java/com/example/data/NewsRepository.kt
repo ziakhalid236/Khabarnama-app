@@ -1,5 +1,6 @@
 package com.example.data
 
+import android.content.Context
 import com.example.data.ai.GeminiNewsTranslator
 import com.example.data.ai.NewsTranslator
 import com.example.data.local.ArticleDao
@@ -14,6 +15,7 @@ import com.example.model.NewsArticle
 import com.example.model.NewsCategory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.json.JSONArray
 
 enum class SyncStatus {
     SUCCESS,
@@ -31,6 +33,7 @@ data class PaginatedArticlesResult(
 interface NewsRepository {
     suspend fun syncFromRemote(): SyncStatus
     suspend fun getCachedArticleCount(): Int
+    suspend fun seedInitialArticlesIfEmpty(): Boolean
     suspend fun getFeaturedIslamicArticles(limit: Int = 4): List<NewsArticle>
     suspend fun getArticlesPage(
         category: NewsCategory,
@@ -53,8 +56,69 @@ class DefaultNewsRepository(
     private val remoteSource: RemoteNewsSource,
     private val articleDao: ArticleDao,
     private val translator: NewsTranslator = GeminiNewsTranslator(),
-    private val currentTimeProvider: () -> Long = { System.currentTimeMillis() }
+    private val currentTimeProvider: () -> Long = { System.currentTimeMillis() },
+    private val context: Context? = null
 ) : NewsRepository {
+
+    override suspend fun seedInitialArticlesIfEmpty(): Boolean = withContext(Dispatchers.IO) {
+        val count = articleDao.getTotalCount()
+        if (count > 0 || context == null) return@withContext false
+
+        try {
+            val jsonString = context.assets.open("initial_news_seed.json").bufferedReader().use { it.readText() }
+            val jsonArray = JSONArray(jsonString)
+            val articles = mutableListOf<ArticleEntity>()
+            val translations = mutableListOf<ArticleTranslationEntity>()
+
+            for (i in 0 until jsonArray.length()) {
+                val obj = jsonArray.getJSONObject(i)
+                val id = obj.getString("id")
+                val article = ArticleEntity(
+                    id = id,
+                    normalizedUrl = obj.getString("normalizedUrl"),
+                    normalizedTitle = obj.getString("normalizedTitle"),
+                    title = obj.getString("title"),
+                    summary = obj.getString("summary"),
+                    category = obj.getString("category"),
+                    islamicSection = if (obj.isNull("islamicSection")) null else obj.getString("islamicSection"),
+                    imageUrl = obj.getString("imageUrl"),
+                    sourceName = obj.getString("sourceName"),
+                    sourceUrl = obj.getString("sourceUrl"),
+                    publishedAt = obj.getLong("publishedAt"),
+                    isIslamicSource = obj.getBoolean("isIslamicSource"),
+                    isScholarlySource = obj.optBoolean("isScholarlySource", false)
+                )
+                articles.add(article)
+
+                if (obj.has("translations")) {
+                    val transObj = obj.getJSONObject("translations")
+                    val keys = transObj.keys()
+                    while (keys.hasNext()) {
+                        val langCode = keys.next()
+                        val langContent = transObj.getJSONObject(langCode)
+                        translations.add(
+                            ArticleTranslationEntity(
+                                articleId = id,
+                                languageCode = langCode,
+                                translatedTitle = langContent.getString("title"),
+                                translatedSummary = langContent.getString("summary")
+                            )
+                        )
+                    }
+                }
+            }
+
+            if (articles.isNotEmpty()) {
+                articleDao.insertArticles(articles)
+                if (translations.isNotEmpty()) {
+                    articleDao.insertTranslations(translations)
+                }
+                return@withContext true
+            }
+        } catch (_: Exception) {
+        }
+        false
+    }
 
     override suspend fun syncFromRemote(): SyncStatus = withContext(Dispatchers.IO) {
         try {

@@ -56,7 +56,7 @@ class RssRemoteNewsSource(
         val sources = loadWhitelistedSources()
         if (sources.isEmpty()) return@withContext emptyList()
 
-        val feedSemaphore = Semaphore(8)
+        val feedSemaphore = Semaphore(16)
         val allFetched = coroutineScope {
             sources.map { source ->
                 async {
@@ -129,36 +129,7 @@ class RssRemoteNewsSource(
         }
 
         recordFeedOutcome(source.feedUrl, succeeded = true, nowMs = now)
-
-        // Limit og:image page fetches strictly to items without a feed image, max 5 per feed
-        val eligibleForOgIds = rawItems
-            .filter { it.imageUrl.isBlank() && it.sourceUrl.startsWith("http") }
-            .take(MAX_OG_IMAGE_FETCHES_PER_FEED)
-            .map { it.id }
-            .toSet()
-
-        if (eligibleForOgIds.isEmpty()) {
-            return rawItems
-        }
-
-        return coroutineScope {
-            rawItems.map { item ->
-                async {
-                    if (item.id in eligibleForOgIds) {
-                        val ogUrl = ogImageFetchSemaphore.withPermit {
-                            fetchOgImage(item.sourceUrl)
-                        }
-                        if (!ogUrl.isNullOrBlank()) {
-                            item.copy(imageUrl = ogUrl)
-                        } else {
-                            item
-                        }
-                    } else {
-                        item
-                    }
-                }
-            }.awaitAll()
-        }
+        return rawItems
     }
 
     internal fun fetchOgImage(articleUrl: String): String? {
@@ -192,8 +163,9 @@ class RssRemoteNewsSource(
 
         fun defaultOkHttpClient(): OkHttpClient {
             return OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(10, TimeUnit.SECONDS)
+                .connectTimeout(4, TimeUnit.SECONDS)
+                .readTimeout(4, TimeUnit.SECONDS)
+                .callTimeout(6, TimeUnit.SECONDS)
                 .followRedirects(true)
                 .followSslRedirects(true)
                 .build()
@@ -534,7 +506,7 @@ class RssRemoteNewsSource(
                 isPoliticalOrConflict -> false
                 source.isScholarlySource -> true
                 source.isIslamicSource -> true
-                isReligiousStoryByKeyword -> true
+                source.category != NewsCategory.PAKISTAN && isReligiousStoryByKeyword -> true
                 else -> false
             }
 

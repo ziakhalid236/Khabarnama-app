@@ -39,7 +39,8 @@ class NewsViewModel @JvmOverloads constructor(
     private val prefs = application.getSharedPreferences("khabarnama_prefs", Context.MODE_PRIVATE)
     private val repository: NewsRepository = customRepository ?: DefaultNewsRepository(
         remoteSource = RssRemoteNewsSource(application),
-        articleDao = AppDatabase.getInstance(application).articleDao()
+        articleDao = AppDatabase.getInstance(application).articleDao(),
+        context = application
     )
 
     private val _currentLanguage = MutableStateFlow(
@@ -182,13 +183,15 @@ class NewsViewModel @JvmOverloads constructor(
 
         reloadJob = viewModelScope.launch {
             val cachedCount = repository.getCachedArticleCount()
-            if (cachedCount > 0) {
-                _isInitialLoading.value = false
-                reloadFromCacheInternal(requestId)
-            } else {
-                _isInitialLoading.value = true
+            if (cachedCount == 0) {
+                repository.seedInitialArticlesIfEmpty()
             }
 
+            // Immediately display initial stories without waiting for network!
+            _isInitialLoading.value = false
+            reloadFromCacheInternal(requestId)
+
+            // Live RSS network sync in background (takes only 2-4 seconds)
             val status = repository.syncFromRemote()
             if (activeRequestId.get() == requestId) {
                 handleSyncStatus(status)

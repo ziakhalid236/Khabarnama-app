@@ -185,39 +185,37 @@ fun UrduAppBar(
                     )
                 }
             } else {
-                // Row 1: Wordmark on left, Premium Flag + Translate Pill (48dp target) and Search Icon (48dp target) on right
+                // Row 1: Wordmark on left, Compact Flag + Translate Pill and Search Icon on right
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 16.dp, end = 12.dp, top = 8.dp),
+                        .padding(start = 14.dp, end = 10.dp, top = 4.dp, bottom = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    KhabarnamaWordmark(modifier = Modifier.weight(1f))
+                    KhabarnamaWordmark(modifier = Modifier.weight(1f, fill = false))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         val isTranslated = currentLanguage != AppLanguage.ENGLISH
                         Box(
                             modifier = Modifier
                                 .minimumInteractiveComponentSize()
-                                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-                                .clip(RoundedCornerShape(24.dp))
+                                .clip(RoundedCornerShape(20.dp))
                                 .clickable { onOpenLanguageDialog() }
                                 .semantics {
                                     role = Role.Button
                                     contentDescription = "News translation language: ${currentLanguage.displayName}"
                                 }
-                                .padding(vertical = 4.dp)
                                 .testTag("translate_language_button"),
                             contentAlignment = Alignment.Center
                         ) {
                             Row(
                                 modifier = Modifier
-                                    .heightIn(min = 38.dp)
-                                    .clip(RoundedCornerShape(20.dp))
+                                    .heightIn(min = 32.dp)
+                                    .clip(RoundedCornerShape(16.dp))
                                     .background(
                                         if (isTranslated) {
                                             Brush.horizontalGradient(
@@ -232,34 +230,34 @@ fun UrduAppBar(
                                     .border(
                                         width = 1.dp,
                                         color = if (isTranslated) MutedGold else GoldBorder,
-                                        shape = RoundedCornerShape(20.dp)
+                                        shape = RoundedCornerShape(16.dp)
                                     )
-                                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                                    .padding(horizontal = 9.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
                             ) {
                                 Text(
                                     text = currentLanguage.flagEmoji,
-                                    fontSize = 14.sp
+                                    fontSize = 13.sp
                                 )
                                 Icon(
                                     imageVector = Icons.Default.Translate,
                                     contentDescription = "Translate news",
                                     tint = if (isTranslated) Color(0xFFF5E3B3) else DeepEmerald,
-                                    modifier = Modifier.size(15.dp)
+                                    modifier = Modifier.size(13.dp)
                                 )
                                 Text(
                                     text = currentLanguage.code,
                                     fontFamily = Inter,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp,
+                                    fontSize = 11.sp,
                                     color = if (isTranslated) Color.White else DeepEmerald
                                 )
                                 Icon(
                                     imageVector = Icons.Default.KeyboardArrowDown,
                                     contentDescription = null,
                                     tint = if (isTranslated) Color.White.copy(alpha = 0.85f) else SoftGrey,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier.size(12.dp)
                                 )
                             }
                         }
@@ -267,7 +265,7 @@ fun UrduAppBar(
                         IconButton(
                             onClick = { onToggleSearch(true) },
                             modifier = Modifier
-                                .size(44.dp)
+                                .size(36.dp)
                                 .clip(CircleShape)
                                 .background(PureWhite)
                                 .border(1.dp, WarmBorder, CircleShape)
@@ -277,7 +275,7 @@ fun UrduAppBar(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Open search",
                                 tint = DeepEmerald,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
@@ -326,9 +324,9 @@ private fun HeaderDateAndNextPrayerLine(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 38.dp)
+            .heightIn(min = 28.dp)
             .clickable { onOpenPrayerDialog() }
-            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .padding(horizontal = 14.dp, vertical = 2.dp)
             .testTag("prayer_times_pill"),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -337,7 +335,7 @@ private fun HeaderDateAndNextPrayerLine(
                 text = hijriDate,
                 fontFamily = Inter,
                 fontWeight = FontWeight.Medium,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 color = SoftGrey,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -345,9 +343,9 @@ private fun HeaderDateAndNextPrayerLine(
             )
 
             Text(
-                text = "  •  ",
+                text = " • ",
                 fontFamily = Inter,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 color = SoftGrey
             )
         }
@@ -360,13 +358,13 @@ private fun HeaderDateAndNextPrayerLine(
                 imageVector = Icons.Default.AccessTime,
                 contentDescription = "Next prayer time",
                 tint = DeepEmerald,
-                modifier = Modifier.size(14.dp)
+                modifier = Modifier.size(12.dp)
             )
             Text(
                 text = "${nextPrayer.prayerName} ${nextPrayer.timeFormatted} (${selectedCity.name})",
                 fontFamily = Inter,
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 12.sp,
+                fontSize = 11.sp,
                 color = DeepEmerald,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

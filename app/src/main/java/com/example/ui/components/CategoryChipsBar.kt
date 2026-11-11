@@ -129,7 +129,7 @@ fun CategoryChipsBar(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 4.dp)
         ) {
             // Main category mini-cards row with soft right-edge fade overlay
             val scrollState = rememberScrollState()
@@ -141,8 +141,8 @@ fun CategoryChipsBar(
                     modifier = Modifier
                         .fillMaxWidth()
                         .horizontalScroll(scrollState)
-                        .padding(start = 16.dp, end = 36.dp),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        .padding(start = 14.dp, end = 32.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     NewsCategory.entries.forEach { category ->
@@ -164,7 +164,7 @@ fun CategoryChipsBar(
                             label = "chip_text_${category.name}"
                         )
 
-                        val cardShape = RoundedCornerShape(16.dp)
+                        val cardShape = RoundedCornerShape(14.dp)
                         val backgroundBrush = if (isSelected) {
                             Brush.linearGradient(
                                 colors = listOf(
@@ -202,17 +202,17 @@ fun CategoryChipsBar(
 
                         Box(
                             modifier = Modifier
-                                .heightIn(min = 44.dp)
+                                .heightIn(min = 36.dp)
                                 .shadow(
-                                    elevation = if (isSelected) 4.dp else 1.dp,
+                                    elevation = if (isSelected) 3.dp else 1.dp,
                                     shape = cardShape,
-                                    ambientColor = DeepEmerald.copy(alpha = 0.16f),
-                                    spotColor = DeepEmerald.copy(alpha = 0.18f)
+                                    ambientColor = DeepEmerald.copy(alpha = 0.14f),
+                                    spotColor = DeepEmerald.copy(alpha = 0.16f)
                                 )
                                 .clip(cardShape)
                                 .background(backgroundBrush)
                                 .border(
-                                    width = if (isSelected) 1.25.dp else 1.dp,
+                                    width = if (isSelected) 1.2.dp else 1.dp,
                                     color = chipBorderColor,
                                     shape = cardShape
                                 )
@@ -221,18 +221,18 @@ fun CategoryChipsBar(
                                     role = Role.Tab
                                     selected = isSelected
                                 }
-                                .padding(start = 8.dp, end = 14.dp, top = 7.dp, bottom = 7.dp)
+                                .padding(start = 6.dp, end = 12.dp, top = 5.dp, bottom = 5.dp)
                                 .testTag("category_chip_${category.name.lowercase()}"),
                             contentAlignment = Alignment.Center
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
                                 // Dedicated Icon Badge inside the Category Mini-Card
                                 Box(
                                     modifier = Modifier
-                                        .size(28.dp)
+                                        .size(24.dp)
                                         .clip(CircleShape)
                                         .background(iconBadgeBg)
                                         .border(
@@ -246,7 +246,7 @@ fun CategoryChipsBar(
                                         imageVector = categoryIcon(category),
                                         contentDescription = null,
                                         tint = iconTint,
-                                        modifier = Modifier.size(15.dp)
+                                        modifier = Modifier.size(13.dp)
                                     )
                                 }
 
@@ -254,7 +254,7 @@ fun CategoryChipsBar(
                                 if (isIslamic) {
                                     Box(
                                         modifier = Modifier
-                                            .size(6.dp)
+                                            .size(5.dp)
                                             .clip(CircleShape)
                                             .background(if (isSelected) Color(0xFFF5E3B3) else MutedGold)
                                     )
@@ -264,7 +264,7 @@ fun CategoryChipsBar(
                                     text = category.englishLabel,
                                     fontFamily = Inter,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                                    fontSize = 13.5.sp,
+                                    fontSize = 12.5.sp,
                                     color = chipTextColor
                                 )
                             }
@@ -333,13 +333,13 @@ fun CategoryChipsBar(
                                 label = "sub_chip_text_${section.name}"
                             )
 
-                            val subShape = RoundedCornerShape(14.dp)
+                            val subShape = RoundedCornerShape(12.dp)
 
                             Box(
                                 modifier = Modifier
-                                    .heightIn(min = 38.dp)
+                                    .heightIn(min = 32.dp)
                                     .shadow(
-                                        elevation = if (isSubSelected) 2.dp else 0.5.dp,
+                                        elevation = if (isSubSelected) 1.5.dp else 0.5.dp,
                                         shape = subShape
                                     )
                                     .clip(subShape)
@@ -354,25 +354,25 @@ fun CategoryChipsBar(
                                         role = Role.Tab
                                         selected = isSubSelected
                                     }
-                                    .padding(horizontal = 12.dp, vertical = 7.dp)
+                                    .padding(horizontal = 10.dp, vertical = 5.dp)
                                     .testTag("islamic_subchip_${section.name.lowercase()}"),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
                                 ) {
                                     Icon(
                                         imageVector = islamicSectionIcon(section),
                                         contentDescription = null,
                                         tint = if (isSubSelected) DeepEmerald else MutedGold,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(13.dp)
                                     )
                                     Text(
                                         text = section.englishLabel,
                                         fontFamily = Inter,
                                         fontWeight = if (isSubSelected) FontWeight.Bold else FontWeight.Medium,
-                                        fontSize = 12.sp,
+                                        fontSize = 11.5.sp,
                                         color = subTextColor
                                     )
                                 }

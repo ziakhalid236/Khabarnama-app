@@ -12,7 +12,7 @@ interface ArticleDao {
         """
         SELECT * FROM cached_articles
         WHERE category = 'ISLAMIC'
-        ORDER BY publishedAt DESC, id ASC
+        ORDER BY (isScholarlySource * 2 + isIslamicSource) DESC, publishedAt DESC, id ASC
         LIMIT :limit
         """
     )
@@ -104,4 +104,7 @@ interface ArticleDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTranslation(translation: ArticleTranslationEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertTranslations(translations: List<ArticleTranslationEntity>)
 }
