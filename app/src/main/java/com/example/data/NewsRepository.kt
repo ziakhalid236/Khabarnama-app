@@ -35,6 +35,8 @@ interface NewsRepository {
     suspend fun getCachedArticleCount(): Int
     suspend fun seedInitialArticlesIfEmpty(): Boolean
     suspend fun getFeaturedIslamicArticles(limit: Int = 4): List<NewsArticle>
+    suspend fun getRecentAlertArticles(limit: Int = 25): List<NewsArticle> = emptyList()
+    suspend fun getSavedArticles(articleIds: Set<String>): List<NewsArticle> = emptyList()
     suspend fun getArticlesPage(
         category: NewsCategory,
         islamicSection: IslamicSection? = null,
@@ -116,6 +118,25 @@ class DefaultNewsRepository(
     override suspend fun getFeaturedIslamicArticles(limit: Int): List<NewsArticle> = withContext(Dispatchers.IO) {
         val entities = articleDao.getLatestIslamicArticles(limit)
         mapEntitiesWithTranslations(entities, isFeaturedIslamic = true)
+    }
+
+    override suspend fun getRecentAlertArticles(limit: Int): List<NewsArticle> = withContext(Dispatchers.IO) {
+        val cutoff36h = currentTimeProvider() - THIRTY_SIX_HOURS_MS
+        val recentEntities = articleDao.getRecentAlertArticles(minPublishedAt = cutoff36h, limit = limit)
+        val finalEntities = if (recentEntities.isNotEmpty()) {
+            recentEntities
+        } else {
+            // Fallback to newest 12 articles if cached feed is older than 36h while offline
+            val cutoff7d = currentTimeProvider() - (7L * 24L * 3600L * 1000L)
+            articleDao.getRecentAlertArticles(minPublishedAt = cutoff7d, limit = 12)
+        }
+        mapEntitiesWithTranslations(finalEntities, isFeaturedIslamic = false)
+    }
+
+    override suspend fun getSavedArticles(articleIds: Set<String>): List<NewsArticle> = withContext(Dispatchers.IO) {
+        if (articleIds.isEmpty()) return@withContext emptyList()
+        val entities = articleDao.getArticlesByIds(articleIds.toList())
+        mapEntitiesWithTranslations(entities, isFeaturedIslamic = false)
     }
 
     override suspend fun getArticlesPage(
@@ -229,5 +250,6 @@ class DefaultNewsRepository(
 
     companion object {
         const val FOURTEEN_DAYS_MS = 14L * 24L * 3600L * 1000L
+        const val THIRTY_SIX_HOURS_MS = 36L * 3600L * 1000L
     }
 }

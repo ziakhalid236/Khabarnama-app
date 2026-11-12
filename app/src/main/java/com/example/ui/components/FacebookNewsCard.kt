@@ -25,8 +25,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -88,6 +90,8 @@ import com.example.util.PrayerTimesUtil
 fun FacebookNewsCard(
     article: NewsArticle,
     currentLanguage: AppLanguage,
+    isBookmarked: Boolean = false,
+    onToggleBookmark: (NewsArticle) -> Unit = {},
     onArticleClick: (NewsArticle) -> Unit,
     onSourceBadgeClick: (NewsArticle) -> Unit,
     onOpenLanguageDialog: () -> Unit = {},
@@ -484,39 +488,72 @@ fun FacebookNewsCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Share action (48dp tap target)
                     Row(
-                        modifier = Modifier
-                            .minimumInteractiveComponentSize()
-                            .heightIn(min = 48.dp)
-                            .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                    type = "text/plain"
-                                    putExtra(Intent.EXTRA_SUBJECT, articleTitle)
-                                    putExtra(Intent.EXTRA_TEXT, "$articleTitle\n\n$articleSummary\n\n${article.sourceUrl}")
-                                }
-                                context.startActivity(Intent.createChooser(shareIntent, "Share Article:"))
-                            }
-                            .padding(horizontal = 10.dp, vertical = 8.dp)
-                            .testTag("share_article_${article.id}"),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Share,
-                            contentDescription = "Share story",
-                            tint = SoftGrey,
-                            modifier = Modifier.size(17.dp)
-                        )
-                        Text(
-                            text = "Share",
-                            fontFamily = Inter,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 13.sp,
-                            color = SoftGrey
-                        )
+                        // Share action (48dp tap target)
+                        Row(
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .heightIn(min = 48.dp)
+                                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                        type = "text/plain"
+                                        putExtra(Intent.EXTRA_SUBJECT, articleTitle)
+                                        putExtra(Intent.EXTRA_TEXT, "$articleTitle\n\n$articleSummary\n\n${article.sourceUrl}")
+                                    }
+                                    context.startActivity(Intent.createChooser(shareIntent, "Share Article:"))
+                                }
+                                .padding(horizontal = 10.dp, vertical = 8.dp)
+                                .testTag("share_article_${article.id}"),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Share,
+                                contentDescription = "Share story",
+                                tint = SoftGrey,
+                                modifier = Modifier.size(17.dp)
+                            )
+                            Text(
+                                text = "Share",
+                                fontFamily = Inter,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 13.sp,
+                                color = SoftGrey
+                            )
+                        }
+
+                        // Save / Bookmark action (48dp tap target)
+                        Row(
+                            modifier = Modifier
+                                .minimumInteractiveComponentSize()
+                                .heightIn(min = 48.dp)
+                                .defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { onToggleBookmark(article) }
+                                .padding(horizontal = 10.dp, vertical = 8.dp)
+                                .testTag("bookmark_article_${article.id}"),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                                contentDescription = if (isBookmarked) "Remove bookmark" else "Save story",
+                                tint = if (isBookmarked) DeepEmerald else SoftGrey,
+                                modifier = Modifier.size(17.dp)
+                            )
+                            Text(
+                                text = if (isBookmarked) "Saved" else "Save",
+                                fontFamily = Inter,
+                                fontWeight = if (isBookmarked) FontWeight.SemiBold else FontWeight.Medium,
+                                fontSize = 13.sp,
+                                color = if (isBookmarked) DeepEmerald else SoftGrey
+                            )
+                        }
                     }
 
                     // Open source action (48dp tap target, opens Custom Tab)

@@ -20,6 +20,25 @@ interface ArticleDao {
 
     @Query(
         """
+        SELECT * FROM cached_articles
+        WHERE publishedAt >= :minPublishedAt
+        ORDER BY publishedAt DESC, id ASC
+        LIMIT :limit
+        """
+    )
+    suspend fun getRecentAlertArticles(minPublishedAt: Long, limit: Int = 30): List<ArticleEntity>
+
+    @Query(
+        """
+        SELECT * FROM cached_articles
+        WHERE id IN (:articleIds)
+        ORDER BY publishedAt DESC, id ASC
+        """
+    )
+    suspend fun getArticlesByIds(articleIds: List<String>): List<ArticleEntity>
+
+    @Query(
+        """
         SELECT cached_articles.* FROM cached_articles
         LEFT JOIN article_translations t
           ON t.articleId = cached_articles.id AND t.languageCode = :languageCode

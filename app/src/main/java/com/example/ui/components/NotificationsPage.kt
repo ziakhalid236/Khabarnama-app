@@ -30,21 +30,29 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -93,14 +101,27 @@ import com.example.util.BrowserUtil
 import com.example.util.PrayerTimesUtil
 import kotlinx.coroutines.Dispatchers
 
+private enum class InboxTab(val label: String) {
+    ALL("All Alerts"),
+    UNREAD("Unread"),
+    SAVED("Saved")
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsPage(
-    articles: List<NewsArticle>,
-    featuredIslamicArticles: List<NewsArticle>,
+    notificationArticles: List<NewsArticle>,
+    savedArticles: List<NewsArticle> = emptyList(),
+    savedArticleIds: Set<String> = emptySet(),
     currentLanguage: AppLanguage,
     notificationsEnabled: Boolean,
     readNotificationIds: Set<String>,
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     onMarkAllRead: () -> Unit,
+    onClearAllNotifications: () -> Unit = {},
+    onDismissNotification: (String) -> Unit = {},
+    onToggleBookmark: (NewsArticle) -> Unit = {},
     onNotificationArticleClick: (NewsArticle) -> Unit,
     onToggleNotifications: (Boolean) -> Unit,
     onBackToHome: () -> Unit,
@@ -108,25 +129,51 @@ fun NotificationsPage(
 ) {
     BackHandler(onBack = onBackToHome)
 
+    var selectedInboxTab by remember { mutableStateOf(InboxTab.ALL) }
     var selectedFilterCategory by remember { mutableStateOf(NewsCategory.ALL) }
 
-    val allAlertArticles = remember(articles, featuredIslamicArticles) {
-        (articles + featuredIslamicArticles)
+    val sortedAlerts = remember(notificationArticles) {
+        notificationArticles
             .distinctBy { it.id }
             .sortedByDescending { it.publishedAt }
     }
 
-    val filteredNotifications = remember(allAlertArticles, selectedFilterCategory) {
-        if (selectedFilterCategory == NewsCategory.ALL) {
-            allAlertArticles
-        } else {
-            allAlertArticles.filter { it.category == selectedFilterCategory }
+    val unreadCount = remember(sortedAlerts, readNotificationIds) {
+        sortedAlerts.count { it.id !in readNotificationIds }
+    }
+
+    val baseListForTab = remember(sortedAlerts, savedArticles, selectedInboxTab, readNotificationIds) {
+        when (selectedInboxTab) {
+            InboxTab.ALL -> sortedAlerts
+            InboxTab.UNREAD -> sortedAlerts.filter { it.id !in readNotificationIds }
+            InboxTab.SAVED -> savedArticles.distinctBy { it.id }.sortedByDescending { it.publishedAt }
         }
     }
 
-    val unreadCount = remember(allAlertArticles, readNotificationIds) {
-        allAlertArticles.count { it.id !in readNotificationIds }
+    val filteredNotifications = remember(baseListForTab, selectedFilterCategory) {
+        if (selectedFilterCategory == NewsCategory.ALL) {
+            baseListForTab
+        } else {
+            baseListForTab.filter { it.category == selectedFilterCategory }
+        }
     }
+
+    // Group notifications into time buckets for a genuine user Notification Center feel
+    val nowMs = remember(filteredNotifications) { System.currentTimeMillis() }
+    val sixHoursAgo = nowMs - 6L * 3600L * 1000L
+    val twentyFourHoursAgo = nowMs - 24L * 3600L * 1000L
+
+    val breakingRecentGroup = remember(filteredNotifications, sixHoursAgo) {
+        filteredNotifications.filter { it.publishedAt >= sixHoursAgo }
+    }
+    val earlierTodayGroup = remember(filteredNotifications, sixHoursAgo, twentyFourHoursAgo) {
+        filteredNotifications.filter { it.publishedAt in twentyFourHoursAgo until sixHoursAgo }
+    }
+    val olderGroup = remember(filteredNotifications, twentyFourHoursAgo) {
+        filteredNotifications.filter { it.publishedAt < twentyFourHoursAgo }
+    }
+
+    val pullRefreshState = rememberPullToRefreshState()
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
         Column(
@@ -135,7 +182,7 @@ fun NotificationsPage(
                 .background(WarmOffWhite)
                 .testTag("notifications_page")
         ) {
-            // 1. Top Header Bar for Notifications Page
+            // 1. Top Header Bar for Notifications Center
             Surface(
                 color = WarmOffWhite,
                 shadowElevation = 2.dp,
@@ -155,11 +202,12 @@ fun NotificationsPage(
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.weight(1f)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(38.dp)
+                                    .size(40.dp)
                                     .clip(CircleShape)
                                     .background(EmeraldTint)
                                     .border(1.dp, DeepEmerald.copy(alpha = 0.25f), CircleShape),
@@ -167,7 +215,7 @@ fun NotificationsPage(
                             ) {
                                 Icon(
                                     imageVector = Icons.Filled.NotificationsActive,
-                                    contentDescription = "Notifications",
+                                    contentDescription = "Notifications Center",
                                     tint = DeepEmerald,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -190,7 +238,7 @@ fun NotificationsPage(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(10.dp))
                                                 .background(DeepEmerald)
-                                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                                                .padding(horizontal = 8.dp, vertical = 2.dp)
                                         ) {
                                             Text(
                                                 text = "$unreadCount new",
@@ -203,7 +251,7 @@ fun NotificationsPage(
                                     }
                                 }
                                 Text(
-                                    text = "Breaking dispatches & priority alerts",
+                                    text = "Live breaking dispatches & saved stories",
                                     fontFamily = Inter,
                                     fontSize = 12.sp,
                                     color = SoftGrey
@@ -211,35 +259,141 @@ fun NotificationsPage(
                             }
                         }
 
-                        if (unreadCount > 0) {
-                            Row(
-                                modifier = Modifier
-                                    .minimumInteractiveComponentSize()
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(PureWhite)
-                                    .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
-                                    .clickable { onMarkAllRead() }
-                                    .padding(horizontal = 10.dp, vertical = 6.dp)
-                                    .testTag("mark_all_notifications_read"),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(5.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.DoneAll,
-                                    contentDescription = "Mark all read",
-                                    tint = DeepEmerald,
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Text(
-                                    text = "Mark read",
-                                    fontFamily = Inter,
-                                    fontWeight = FontWeight.SemiBold,
-                                    fontSize = 12.sp,
-                                    color = DeepEmerald
-                                )
+                        // Header Actions: Mark Read & Clear All
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            if (unreadCount > 0 && selectedInboxTab != InboxTab.SAVED) {
+                                Row(
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(PureWhite)
+                                        .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
+                                        .clickable { onMarkAllRead() }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                        .testTag("mark_all_notifications_read"),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DoneAll,
+                                        contentDescription = "Mark all read",
+                                        tint = DeepEmerald,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Text(
+                                        text = "Read all",
+                                        fontFamily = Inter,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.5.sp,
+                                        color = DeepEmerald
+                                    )
+                                }
+                            }
+
+                            if (sortedAlerts.isNotEmpty() && selectedInboxTab != InboxTab.SAVED) {
+                                Row(
+                                    modifier = Modifier
+                                        .minimumInteractiveComponentSize()
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(PureWhite)
+                                        .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
+                                        .clickable { onClearAllNotifications() }
+                                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                                        .testTag("clear_all_notifications_button"),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.DeleteSweep,
+                                        contentDescription = "Clear all notifications",
+                                        tint = SoftGrey,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Text(
+                                        text = "Clear",
+                                        fontFamily = Inter,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.5.sp,
+                                        color = SoftGrey
+                                    )
+                                }
                             }
                         }
                     }
+
+                    // Inbox Mode Tabs: All Alerts | Unread | Saved
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        InboxTab.entries.forEach { tab ->
+                            val isSelected = selectedInboxTab == tab
+                            val badgeCount = when (tab) {
+                                InboxTab.ALL -> sortedAlerts.size
+                                InboxTab.UNREAD -> unreadCount
+                                InboxTab.SAVED -> savedArticles.size
+                            }
+                            Row(
+                                modifier = Modifier
+                                    .heightIn(min = 34.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(if (isSelected) DeepEmerald else PureWhite)
+                                    .border(
+                                        1.dp,
+                                        if (isSelected) DeepEmerald else WarmBorder,
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                    .clickable { selectedInboxTab = tab }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                                    .testTag("inbox_tab_${tab.name.lowercase()}"),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                if (tab == InboxTab.SAVED) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Bookmark,
+                                        contentDescription = null,
+                                        tint = if (isSelected) Color.White else MutedGold,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                                Text(
+                                    text = tab.label,
+                                    fontFamily = Inter,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 12.sp,
+                                    color = if (isSelected) Color.White else InkPrimary
+                                )
+                                if (badgeCount > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(
+                                                if (isSelected) Color.White.copy(alpha = 0.22f)
+                                                else EmeraldTint
+                                            )
+                                            .padding(horizontal = 6.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(
+                                            text = badgeCount.toString(),
+                                            fontFamily = Inter,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp,
+                                            color = if (isSelected) Color.White else DeepEmerald
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     // Category Filter Row with Realistic Flags & White-and-Black Islamic Flag
                     val filterScrollState = rememberScrollState()
@@ -316,74 +470,201 @@ fun NotificationsPage(
                 }
             }
 
-            // 2. Notification Alerts List
-            LazyColumn(
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag("notifications_list")
+            // 2. Pull-to-Refresh Notification Alerts List
+            PullToRefreshBox(
+                isRefreshing = isRefreshing,
+                onRefresh = onRefresh,
+                state = pullRefreshState,
+                modifier = Modifier.fillMaxSize()
             ) {
-                // Breaking News Push Alerts Control Banner Card
-                item(key = "push_alerts_control_card") {
-                    PushAlertControlBanner(
-                        notificationsEnabled = notificationsEnabled,
-                        onToggleNotifications = onToggleNotifications
-                    )
-                }
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .testTag("notifications_list")
+                ) {
+                    // Breaking News Push Alerts Control Banner Card
+                    item(key = "push_alerts_control_card") {
+                        PushAlertControlBanner(
+                            notificationsEnabled = notificationsEnabled,
+                            onToggleNotifications = onToggleNotifications
+                        )
+                    }
 
-                if (filteredNotifications.isEmpty()) {
-                    item(key = "empty_notifications_box") {
-                        Surface(
-                            color = PureWhite,
-                            shape = RoundedCornerShape(18.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(1.dp, WarmBorder, RoundedCornerShape(18.dp))
-                                .padding(24.dp)
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier.fillMaxWidth()
+                    if (filteredNotifications.isEmpty()) {
+                        item(key = "empty_notifications_box") {
+                            Surface(
+                                color = PureWhite,
+                                shape = RoundedCornerShape(18.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .border(1.dp, WarmBorder, RoundedCornerShape(18.dp))
+                                    .padding(24.dp)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Notifications,
-                                    contentDescription = null,
-                                    tint = SoftGrey,
-                                    modifier = Modifier.size(32.dp)
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Icon(
+                                        imageVector = if (selectedInboxTab == InboxTab.SAVED) Icons.Outlined.BookmarkBorder else Icons.Outlined.Notifications,
+                                        contentDescription = null,
+                                        tint = SoftGrey,
+                                        modifier = Modifier.size(34.dp)
+                                    )
+                                    Text(
+                                        text = when (selectedInboxTab) {
+                                            InboxTab.SAVED -> "No saved stories yet"
+                                            InboxTab.UNREAD -> "You're all caught up!"
+                                            InboxTab.ALL -> "No active notifications"
+                                        },
+                                        fontFamily = PlayfairDisplay,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp,
+                                        color = InkPrimary,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Text(
+                                        text = when (selectedInboxTab) {
+                                            InboxTab.SAVED -> "Tap the Save icon on any news card or notification to bookmark stories for offline reading."
+                                            InboxTab.UNREAD -> "All recent breaking alerts have been read. Switch to 'All Alerts' or pull down to refresh."
+                                            InboxTab.ALL -> "Pull down to check for new breaking dispatches or choose another category above."
+                                        },
+                                        fontFamily = Inter,
+                                        fontSize = 13.sp,
+                                        color = SoftGrey,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    } else if (selectedInboxTab == InboxTab.SAVED) {
+                        item(key = "header_saved_stories") {
+                            NotificationSectionHeader(
+                                title = "Saved Stories (${filteredNotifications.size})",
+                                isLive = false
+                            )
+                        }
+                        items(filteredNotifications, key = { "saved_${it.id}" }) { article ->
+                            NotificationDispatchCard(
+                                article = article,
+                                currentLanguage = currentLanguage,
+                                isUnread = false,
+                                isBookmarked = article.id in savedArticleIds,
+                                showDismissButton = false,
+                                onDismiss = {},
+                                onToggleBookmark = { onToggleBookmark(article) },
+                                onClick = { onNotificationArticleClick(article) }
+                            )
+                        }
+                    } else {
+                        if (breakingRecentGroup.isNotEmpty()) {
+                            item(key = "header_breaking_now") {
+                                NotificationSectionHeader(
+                                    title = "Breaking & Recent (${breakingRecentGroup.size})",
+                                    isLive = true
                                 )
-                                Text(
-                                    text = "No notifications in this category yet",
-                                    fontFamily = PlayfairDisplay,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 17.sp,
-                                    color = InkPrimary,
-                                    textAlign = TextAlign.Center
+                            }
+                            items(breakingRecentGroup, key = { "notif_recent_${it.id}" }) { article ->
+                                val isUnread = article.id !in readNotificationIds
+                                NotificationDispatchCard(
+                                    article = article,
+                                    currentLanguage = currentLanguage,
+                                    isUnread = isUnread,
+                                    isBookmarked = article.id in savedArticleIds,
+                                    showDismissButton = true,
+                                    onDismiss = { onDismissNotification(article.id) },
+                                    onToggleBookmark = { onToggleBookmark(article) },
+                                    onClick = { onNotificationArticleClick(article) }
                                 )
-                                Text(
-                                    text = "Select another category above or pull to refresh on the Home screen for new dispatches.",
-                                    fontFamily = Inter,
-                                    fontSize = 13.sp,
-                                    color = SoftGrey,
-                                    textAlign = TextAlign.Center
+                            }
+                        }
+
+                        if (earlierTodayGroup.isNotEmpty()) {
+                            item(key = "header_earlier_today") {
+                                NotificationSectionHeader(
+                                    title = "Earlier Today (${earlierTodayGroup.size})",
+                                    isLive = false
+                                )
+                            }
+                            items(earlierTodayGroup, key = { "notif_today_${it.id}" }) { article ->
+                                val isUnread = article.id !in readNotificationIds
+                                NotificationDispatchCard(
+                                    article = article,
+                                    currentLanguage = currentLanguage,
+                                    isUnread = isUnread,
+                                    isBookmarked = article.id in savedArticleIds,
+                                    showDismissButton = true,
+                                    onDismiss = { onDismissNotification(article.id) },
+                                    onToggleBookmark = { onToggleBookmark(article) },
+                                    onClick = { onNotificationArticleClick(article) }
+                                )
+                            }
+                        }
+
+                        if (olderGroup.isNotEmpty()) {
+                            item(key = "header_earlier_dispatches") {
+                                NotificationSectionHeader(
+                                    title = "Recent Dispatches (${olderGroup.size})",
+                                    isLive = false
+                                )
+                            }
+                            items(olderGroup, key = { "notif_older_${it.id}" }) { article ->
+                                val isUnread = article.id !in readNotificationIds
+                                NotificationDispatchCard(
+                                    article = article,
+                                    currentLanguage = currentLanguage,
+                                    isUnread = isUnread,
+                                    isBookmarked = article.id in savedArticleIds,
+                                    showDismissButton = true,
+                                    onDismiss = { onDismissNotification(article.id) },
+                                    onToggleBookmark = { onToggleBookmark(article) },
+                                    onClick = { onNotificationArticleClick(article) }
                                 )
                             }
                         }
                     }
-                } else {
-                    items(filteredNotifications, key = { "notif_${it.id}" }) { article ->
-                        val isUnread = article.id !in readNotificationIds
-                        NotificationDispatchCard(
-                            article = article,
-                            currentLanguage = currentLanguage,
-                            isUnread = isUnread,
-                            onClick = { onNotificationArticleClick(article) }
-                        )
-                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun NotificationSectionHeader(
+    title: String,
+    isLive: Boolean
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp, bottom = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (isLive) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFD93025))
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .width(14.dp)
+                    .height(2.dp)
+                    .background(MutedGold)
+            )
+        }
+        Text(
+            text = title,
+            fontFamily = Inter,
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.5.sp,
+            color = if (isLive) DeepEmerald else SoftGrey
+        )
     }
 }
 
@@ -460,6 +741,10 @@ private fun NotificationDispatchCard(
     article: NewsArticle,
     currentLanguage: AppLanguage,
     isUnread: Boolean,
+    isBookmarked: Boolean,
+    showDismissButton: Boolean,
+    onDismiss: () -> Unit,
+    onToggleBookmark: () -> Unit,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -499,8 +784,8 @@ private fun NotificationDispatchCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(18.dp))
             .border(
-                width = if (isUnread) 1.2.dp else 1.dp,
-                color = if (isIslamic) Color.Black else if (isUnread) DeepEmerald.copy(alpha = 0.45f) else WarmBorder,
+                width = if (isUnread) 1.3.dp else 1.dp,
+                color = if (isIslamic) Color.Black else if (isUnread) DeepEmerald.copy(alpha = 0.5f) else WarmBorder,
                 shape = RoundedCornerShape(18.dp)
             )
             .clickable { onClick() }
@@ -516,7 +801,7 @@ private fun NotificationDispatchCard(
                     if (isUnread) {
                         Brush.verticalGradient(
                             colors = listOf(
-                                EmeraldTint.copy(alpha = 0.35f),
+                                EmeraldTint.copy(alpha = 0.42f),
                                 PureWhite
                             )
                         )
@@ -524,9 +809,9 @@ private fun NotificationDispatchCard(
                         Brush.verticalGradient(listOf(PureWhite, PureWhite))
                     }
                 )
-                .padding(14.dp)
+                .padding(start = 14.dp, end = 10.dp, top = 12.dp, bottom = 10.dp)
         ) {
-            // Top Meta Row: Unread Dot + Breaking Label + Source + Time + Category Flag Badge
+            // Top Meta Row: Unread NEW Badge + Publisher Avatar + Name + Time + Category Flag Pill + Dismiss (X)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -540,9 +825,33 @@ private fun NotificationDispatchCard(
                     if (isUnread) {
                         Box(
                             modifier = Modifier
-                                .size(8.dp)
-                                .clip(CircleShape)
+                                .clip(RoundedCornerShape(6.dp))
                                 .background(DeepEmerald)
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "NEW",
+                                fontFamily = Inter,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 9.5.sp,
+                                color = Color.White
+                            )
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .clip(CircleShape)
+                            .background(if (isIslamic) Color(0xFF111111) else EmeraldTint),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = article.sourceName.take(1).uppercase(),
+                            fontFamily = Inter,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = if (isIslamic) Color.White else DeepEmerald
                         )
                     }
 
@@ -572,34 +881,54 @@ private fun NotificationDispatchCard(
                     )
                 }
 
-                // Category Flag Pill (White & Black for Islamic, Full-Color Flag for others)
-                Box(
-                    modifier = Modifier
-                        .padding(start = 8.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (isIslamic) Color.White else EmeraldTint)
-                        .border(
-                            1.dp,
-                            if (isIslamic) Color.Black else DeepEmerald.copy(alpha = 0.22f),
-                            RoundedCornerShape(10.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    // Category Flag Pill (White & Black for Islamic, Full-Color Flag for others)
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isIslamic) Color.White else EmeraldTint)
+                            .border(
+                                1.dp,
+                                if (isIslamic) Color.Black else DeepEmerald.copy(alpha = 0.22f),
+                                RoundedCornerShape(10.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
-                        CategoryBadgeIcon(
-                            category = article.category,
-                            size = 13.dp
-                        )
-                        Text(
-                            text = article.category.englishLabel,
-                            fontFamily = Inter,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 11.sp,
-                            color = if (isIslamic) Color.Black else DeepEmerald
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            CategoryBadgeIcon(
+                                category = article.category,
+                                size = 13.dp
+                            )
+                            Text(
+                                text = article.category.englishLabel,
+                                fontFamily = Inter,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp,
+                                color = if (isIslamic) Color.Black else DeepEmerald
+                            )
+                        }
+                    }
+
+                    if (showDismissButton) {
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .testTag("dismiss_notif_${article.id}")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Dismiss notification",
+                                tint = SoftGrey,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -608,14 +937,16 @@ private fun NotificationDispatchCard(
 
             // Middle Row: Thumbnail + Story Text
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(end = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.Top
             ) {
                 // Compact Thumbnail on left
                 Box(
                     modifier = Modifier
-                        .size(width = 92.dp, height = 68.dp)
+                        .size(width = 96.dp, height = 70.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .border(0.5.dp, WarmBorder, RoundedCornerShape(12.dp))
                 ) {
@@ -653,7 +984,7 @@ private fun NotificationDispatchCard(
                         text = unifiedStoryText,
                         style = TextStyle(
                             fontFamily = storyFontFamily,
-                            fontWeight = if (isUrdu) FontWeight.Normal else FontWeight.Medium,
+                            fontWeight = if (isUrdu) FontWeight.Normal else if (isUnread) FontWeight.SemiBold else FontWeight.Medium,
                             fontSize = if (isUrdu) 16.sp else if (isArabic) 15.sp else 14.sp,
                             lineHeight = if (isUrdu) 33.sp else if (isArabic) 28.sp else 20.sp,
                             color = InkPrimary,
@@ -670,43 +1001,75 @@ private fun NotificationDispatchCard(
             Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider(thickness = 0.5.dp, color = WarmDivider)
 
-            // Quick Actions Row
+            // Quick Actions Row: Save/Bookmark | Share | Read at source
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 6.dp),
+                    .padding(top = 6.dp, end = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
-                    modifier = Modifier
-                        .defaultMinSize(minHeight = 32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .clickable {
-                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_SUBJECT, articleTitle)
-                                putExtra(Intent.EXTRA_TEXT, "$articleTitle\n\n$articleSummary\n\n${article.sourceUrl}")
-                            }
-                            context.startActivity(Intent.createChooser(shareIntent, "Share Alert:"))
-                        }
-                        .padding(horizontal = 6.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Share,
-                        contentDescription = "Share notification",
-                        tint = SoftGrey,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = "Share",
-                        fontFamily = Inter,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 12.sp,
-                        color = SoftGrey
-                    )
+                    // Save / Bookmark Action
+                    Row(
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = 32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { onToggleBookmark() }
+                            .padding(horizontal = 6.dp, vertical = 4.dp)
+                            .testTag("bookmark_notif_${article.id}"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                            contentDescription = if (isBookmarked) "Remove from saved" else "Save story",
+                            tint = if (isBookmarked) DeepEmerald else SoftGrey,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Text(
+                            text = if (isBookmarked) "Saved" else "Save",
+                            fontFamily = Inter,
+                            fontWeight = if (isBookmarked) FontWeight.SemiBold else FontWeight.Medium,
+                            fontSize = 12.sp,
+                            color = if (isBookmarked) DeepEmerald else SoftGrey
+                        )
+                    }
+
+                    // Share Action
+                    Row(
+                        modifier = Modifier
+                            .defaultMinSize(minHeight = 32.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable {
+                                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_SUBJECT, articleTitle)
+                                    putExtra(Intent.EXTRA_TEXT, "$articleTitle\n\n$articleSummary\n\n${article.sourceUrl}")
+                                }
+                                context.startActivity(Intent.createChooser(shareIntent, "Share Alert:"))
+                            }
+                            .padding(horizontal = 6.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Share,
+                            contentDescription = "Share notification",
+                            tint = SoftGrey,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "Share",
+                            fontFamily = Inter,
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 12.sp,
+                            color = SoftGrey
+                        )
+                    }
                 }
 
                 Row(

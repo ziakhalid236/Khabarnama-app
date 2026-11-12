@@ -28,9 +28,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -92,6 +95,8 @@ import com.example.util.PrayerTimesUtil
 fun ArticleDetailDialog(
     article: NewsArticle,
     currentLanguage: AppLanguage,
+    isBookmarked: Boolean = false,
+    onToggleBookmark: () -> Unit = {},
     onSourceBadgeClick: (NewsArticle) -> Unit,
     onDismiss: () -> Unit,
     onRetryTranslation: () -> Unit = {},
@@ -101,6 +106,12 @@ fun ArticleDetailDialog(
 
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    var textScaleStep by remember { mutableStateOf(0) } // 0 = Normal, 1 = Large, 2 = Extra Large
+    val fontScale = when (textScaleStep) {
+        1 -> 1.15f
+        2 -> 1.3f
+        else -> 1.0f
+    }
 
     val hasTargetTranslation = article.hasTranslation(currentLanguage)
     val effectiveLanguage = if (hasTargetTranslation) currentLanguage else AppLanguage.ENGLISH
@@ -133,15 +144,15 @@ fun ArticleDetailDialog(
     }
 
     val storyFontSize = when {
-        isUrdu -> 20.sp
-        isArabic -> 18.sp
-        else -> 16.sp
+        isUrdu -> (20f * fontScale).sp
+        isArabic -> (18f * fontScale).sp
+        else -> (16f * fontScale).sp
     }
 
     val storyLineHeight = when {
-        isUrdu -> 42.sp
-        isArabic -> 36.sp
-        else -> 26.sp
+        isUrdu -> (42f * fontScale).sp
+        isArabic -> (36f * fontScale).sp
+        else -> (26f * fontScale).sp
     }
 
     val storyLetterSpacing = when {
@@ -204,17 +215,45 @@ fun ArticleDetailDialog(
                                     .padding(horizontal = 8.dp)
                             )
 
-                            IconButton(
-                                onClick = shareArticle,
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .testTag("top_share_article_button")
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Outlined.Share,
-                                    contentDescription = "Share story",
-                                    tint = InkPrimary
-                                )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = { textScaleStep = (textScaleStep + 1) % 3 },
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .testTag("toggle_text_size_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.FormatSize,
+                                        contentDescription = "Adjust text size",
+                                        tint = if (textScaleStep > 0) DeepEmerald else InkPrimary
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = onToggleBookmark,
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .testTag("detail_bookmark_button")
+                                ) {
+                                    Icon(
+                                        imageVector = if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                                        contentDescription = if (isBookmarked) "Remove bookmark" else "Save story",
+                                        tint = if (isBookmarked) DeepEmerald else InkPrimary
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = shareArticle,
+                                    modifier = Modifier
+                                        .size(44.dp)
+                                        .testTag("top_share_article_button")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Share,
+                                        contentDescription = "Share story",
+                                        tint = InkPrimary
+                                    )
+                                }
                             }
                         }
                         HorizontalDivider(thickness = 1.dp, color = WarmDivider)

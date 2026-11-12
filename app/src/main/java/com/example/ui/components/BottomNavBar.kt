@@ -120,13 +120,25 @@ fun KhabarnamaBottomNavBar(
                             )
 
                             if (tab == NavTab.NOTIFICATIONS && unreadNotificationCount > 0) {
+                                val badgeLabel = if (unreadNotificationCount > 99) "99+" else unreadNotificationCount.toString()
                                 Box(
                                     modifier = Modifier
-                                        .offset(x = 4.dp, y = (-2).dp)
-                                        .size(9.dp)
-                                        .clip(CircleShape)
-                                        .background( Color(0xFFD93025) )
-                                )
+                                        .offset(x = 8.dp, y = (-4).dp)
+                                        .defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFFD93025))
+                                        .padding(horizontal = 4.dp, vertical = 1.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = badgeLabel,
+                                        fontFamily = Inter,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 9.sp,
+                                        lineHeight = 10.sp,
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
 

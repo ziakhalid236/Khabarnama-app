@@ -164,6 +164,10 @@ private fun MainNewsContent(
     val recentSearches by viewModel.recentSearches.collectAsStateWithLifecycle()
     val featuredIslamicArticles by viewModel.featuredIslamicArticles.collectAsStateWithLifecycle()
     val articles by viewModel.articles.collectAsStateWithLifecycle()
+    val notificationArticles by viewModel.notificationArticles.collectAsStateWithLifecycle()
+    val readNotificationIds by viewModel.readNotificationIds.collectAsStateWithLifecycle()
+    val savedArticleIds by viewModel.savedArticleIds.collectAsStateWithLifecycle()
+    val savedArticles by viewModel.savedArticles.collectAsStateWithLifecycle()
     val selectedCity by viewModel.selectedCity.collectAsStateWithLifecycle()
     val hijriAdjustment by viewModel.hijriAdjustment.collectAsStateWithLifecycle()
     val isInitialLoading by viewModel.isInitialLoading.collectAsStateWithLifecycle()
@@ -179,11 +183,10 @@ private fun MainNewsContent(
     val isShowingLanguageDialog by viewModel.isShowingLanguageDialog.collectAsStateWithLifecycle()
     var isShowingSettingsDialog by remember { mutableStateOf(false) }
     var isNotificationsPageOpen by remember { mutableStateOf(false) }
-    var readNotificationIds by remember { mutableStateOf(setOf<String>()) }
 
-    val unreadNotificationCount by remember(articles, featuredIslamicArticles, readNotificationIds) {
+    val unreadNotificationCount by remember(notificationArticles, readNotificationIds) {
         derivedStateOf {
-            (articles + featuredIslamicArticles)
+            notificationArticles
                 .distinctBy { it.id }
                 .count { it.id !in readNotificationIds }
         }
@@ -339,17 +342,20 @@ private fun MainNewsContent(
             ) { innerPadding ->
                 if (isNotificationsPageOpen) {
                     NotificationsPage(
-                        articles = articles,
-                        featuredIslamicArticles = featuredIslamicArticles,
+                        notificationArticles = notificationArticles,
+                        savedArticles = savedArticles,
+                        savedArticleIds = savedArticleIds,
                         currentLanguage = currentLanguage,
                         notificationsEnabled = notificationsEnabled,
                         readNotificationIds = readNotificationIds,
-                        onMarkAllRead = {
-                            val allIds = (articles + featuredIslamicArticles).map { it.id }.toSet()
-                            readNotificationIds = readNotificationIds + allIds
-                        },
+                        isRefreshing = isRefreshing,
+                        onRefresh = { viewModel.refreshNews() },
+                        onMarkAllRead = { viewModel.markAllNotificationsRead() },
+                        onClearAllNotifications = { viewModel.clearAllNotifications() },
+                        onDismissNotification = { viewModel.dismissNotification(it) },
+                        onToggleBookmark = { viewModel.toggleBookmarkArticle(it) },
                         onNotificationArticleClick = { clickedArticle ->
-                            readNotificationIds = readNotificationIds + clickedArticle.id
+                            viewModel.markNotificationRead(clickedArticle.id)
                             viewModel.openArticleDetail(clickedArticle)
                         },
                         onToggleNotifications = { enabled ->
@@ -661,6 +667,8 @@ private fun MainNewsContent(
                                         FacebookNewsCard(
                                             article = article,
                                             currentLanguage = currentLanguage,
+                                            isBookmarked = article.id in savedArticleIds,
+                                            onToggleBookmark = { viewModel.toggleBookmarkArticle(it) },
                                             onArticleClick = { viewModel.openArticleDetail(it) },
                                             onSourceBadgeClick = { viewModel.openImageSourceSheet(it) },
                                             onOpenLanguageDialog = { viewModel.showLanguageDialog(true) },
@@ -794,6 +802,8 @@ private fun MainNewsContent(
                 ArticleDetailDialog(
                     article = article,
                     currentLanguage = currentLanguage,
+                    isBookmarked = article.id in savedArticleIds,
+                    onToggleBookmark = { viewModel.toggleBookmarkArticle(article) },
                     onSourceBadgeClick = { viewModel.openImageSourceSheet(it) },
                     onDismiss = { viewModel.closeArticleDetail() },
                     onRetryTranslation = { viewModel.retryTranslations() }

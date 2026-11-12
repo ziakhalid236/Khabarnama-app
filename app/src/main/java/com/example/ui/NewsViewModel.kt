@@ -117,6 +117,21 @@ class NewsViewModel @JvmOverloads constructor(
     private val _articles = MutableStateFlow<List<NewsArticle>>(emptyList())
     val articles: StateFlow<List<NewsArticle>> = _articles.asStateFlow()
 
+    private val _notificationArticles = MutableStateFlow<List<NewsArticle>>(emptyList())
+    val notificationArticles: StateFlow<List<NewsArticle>> = _notificationArticles.asStateFlow()
+
+    private val _readNotificationIds = MutableStateFlow(loadStringSetFromPrefs(KEY_READ_NOTIFICATION_IDS))
+    val readNotificationIds: StateFlow<Set<String>> = _readNotificationIds.asStateFlow()
+
+    private val _dismissedNotificationIds = MutableStateFlow(loadStringSetFromPrefs(KEY_DISMISSED_NOTIFICATION_IDS))
+    val dismissedNotificationIds: StateFlow<Set<String>> = _dismissedNotificationIds.asStateFlow()
+
+    private val _savedArticleIds = MutableStateFlow(loadStringSetFromPrefs(KEY_SAVED_ARTICLE_IDS))
+    val savedArticleIds: StateFlow<Set<String>> = _savedArticleIds.asStateFlow()
+
+    private val _savedArticles = MutableStateFlow<List<NewsArticle>>(emptyList())
+    val savedArticles: StateFlow<List<NewsArticle>> = _savedArticles.asStateFlow()
+
     private val pageSize = 8
 
     @Volatile
@@ -174,6 +189,70 @@ class NewsViewModel @JvmOverloads constructor(
     fun clearRecentSearches() {
         _recentSearches.value = emptyList()
         saveRecentSearchesToPrefs(emptyList())
+    }
+
+    private fun loadStringSetFromPrefs(key: String): Set<String> {
+        val raw = prefs.getString(key, "").orEmpty()
+        if (raw.isBlank()) return emptySet()
+        return raw.split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .toSet()
+    }
+
+    private fun saveStringSetToPrefs(key: String, ids: Set<String>, maxCount: Int = 200) {
+        val trimmed = ids.take(maxCount).joinToString(",")
+        prefs.edit().putString(key, trimmed).apply()
+    }
+
+    fun markNotificationRead(articleId: String) {
+        if (articleId.isBlank() || articleId in _readNotificationIds.value) return
+        val updated = _readNotificationIds.value + articleId
+        _readNotificationIds.value = updated
+        saveStringSetToPrefs(KEY_READ_NOTIFICATION_IDS, updated)
+    }
+
+    fun markAllNotificationsRead() {
+        val allIds = _notificationArticles.value.map { it.id }.toSet()
+        if (allIds.isEmpty()) return
+        val updated = _readNotificationIds.value + allIds
+        _readNotificationIds.value = updated
+        saveStringSetToPrefs(KEY_READ_NOTIFICATION_IDS, updated)
+    }
+
+    fun dismissNotification(articleId: String) {
+        if (articleId.isBlank()) return
+        val updatedDismissed = _dismissedNotificationIds.value + articleId
+        _dismissedNotificationIds.value = updatedDismissed
+        saveStringSetToPrefs(KEY_DISMISSED_NOTIFICATION_IDS, updatedDismissed)
+        _notificationArticles.update { list -> list.filterNot { it.id == articleId } }
+    }
+
+    fun clearAllNotifications() {
+        val currentIds = _notificationArticles.value.map { it.id }.toSet()
+        if (currentIds.isEmpty()) return
+        val updatedDismissed = _dismissedNotificationIds.value + currentIds
+        _dismissedNotificationIds.value = updatedDismissed
+        saveStringSetToPrefs(KEY_DISMISSED_NOTIFICATION_IDS, updatedDismissed)
+        val updatedRead = _readNotificationIds.value + currentIds
+        _readNotificationIds.value = updatedRead
+        saveStringSetToPrefs(KEY_READ_NOTIFICATION_IDS, updatedRead)
+        _notificationArticles.value = emptyList()
+    }
+
+    fun toggleBookmarkArticle(article: NewsArticle) {
+        val currentIds = _savedArticleIds.value
+        val isRemoving = article.id in currentIds
+        val updatedIds = if (isRemoving) currentIds - article.id else setOf(article.id) + currentIds
+        _savedArticleIds.value = updatedIds
+        saveStringSetToPrefs(KEY_SAVED_ARTICLE_IDS, updatedIds, maxCount = 150)
+        if (isRemoving) {
+            _savedArticles.update { list -> list.filterNot { it.id == article.id } }
+        } else {
+            val lang = _currentLanguage.value
+            val prepared = applyRuntimeTranslationFlags(listOf(article), lang).first()
+            _savedArticles.update { list -> (listOf(prepared) + list.filterNot { it.id == article.id }) }
+        }
     }
 
     private fun initialLoadAndSync() {
@@ -274,6 +353,8 @@ class NewsViewModel @JvmOverloads constructor(
             pageSize = pageSize
         )
 
+        val rawNotifications = repository.getRecentAlertArticles(limit = 25)
+        val savedList = repository.getSavedArticles(_savedArticleIds.value)
         if (activeRequestId.get() != requestId) return
 
         nextBeforePublishedAt = pageResult.nextBeforePublishedAt
@@ -282,9 +363,23 @@ class NewsViewModel @JvmOverloads constructor(
         _featuredIslamicArticles.value = applyRuntimeTranslationFlags(featured, lang)
         _articles.value = applyRuntimeTranslationFlags(pageResult.articles, lang)
 
+        val dismissed = _dismissedNotificationIds.value
+        val alertSourceList = if (rawNotifications.isNotEmpty()) {
+            rawNotifications
+        } else {
+            (pageResult.articles + featured).distinctBy { it.id }.sortedByDescending { it.publishedAt }.take(20)
+        }
+        _notificationArticles.value = applyRuntimeTranslationFlags(
+            alertSourceList.filterNot { it.id in dismissed },
+            lang
+        )
+        _savedArticles.value = applyRuntimeTranslationFlags(savedList, lang)
+
         pendingNotificationArticleId?.let { targetId ->
-            val matched = (_articles.value + _featuredIslamicArticles.value).firstOrNull { it.id == targetId }
+            val matched = (_articles.value + _featuredIslamicArticles.value + _notificationArticles.value)
+                .firstOrNull { it.id == targetId }
             if (matched != null) {
+                markNotificationRead(matched.id)
                 _selectedArticleForDetail.value = matched
                 pendingNotificationArticleId = null
             }
@@ -305,6 +400,8 @@ class NewsViewModel @JvmOverloads constructor(
         val lang = _currentLanguage.value
         _featuredIslamicArticles.update { applyRuntimeTranslationFlags(it, lang) }
         _articles.update { applyRuntimeTranslationFlags(it, lang) }
+        _notificationArticles.update { applyRuntimeTranslationFlags(it, lang) }
+        _savedArticles.update { applyRuntimeTranslationFlags(it, lang) }
         enqueueMissingTranslations(lang)
     }
 
@@ -451,13 +548,13 @@ class NewsViewModel @JvmOverloads constructor(
     private fun enqueueMissingTranslations(lang: AppLanguage) {
         if (lang == AppLanguage.ENGLISH) return
 
-        val candidates = (_featuredIslamicArticles.value + _articles.value)
+        val candidates = (_featuredIslamicArticles.value + _articles.value + _notificationArticles.value + _savedArticles.value)
             .distinctBy { it.id }
             .filter { article ->
                 val key = "${article.id}_${lang.code}"
                 !article.hasTranslation(lang) && key !in failedTranslations && inFlightTranslations.add(key)
             }
-            .take(24)
+            .take(28)
 
         for (article in candidates) {
             val key = "${article.id}_${lang.code}"
@@ -520,6 +617,8 @@ class NewsViewModel @JvmOverloads constructor(
 
         _featuredIslamicArticles.update { list -> list.map(updater) }
         _articles.update { list -> list.map(updater) }
+        _notificationArticles.update { list -> list.map(updater) }
+        _savedArticles.update { list -> list.map(updater) }
         _selectedArticleForDetail.update { current -> current?.let(updater) }
     }
 
@@ -535,6 +634,7 @@ class NewsViewModel @JvmOverloads constructor(
         if (_isSearchOpen.value && _searchQuery.value.isNotBlank()) {
             recordRecentSearch(_searchQuery.value)
         }
+        markNotificationRead(article.id)
         _selectedArticleForDetail.value = article
     }
 
@@ -597,6 +697,9 @@ class NewsViewModel @JvmOverloads constructor(
         private const val KEY_HIJRI_ADJUSTMENT = "hijri_adjustment_days"
         private const val KEY_SELECTED_LANGUAGE = "selected_news_language"
         private const val KEY_RECENT_SEARCHES = "recent_search_queries"
+        private const val KEY_READ_NOTIFICATION_IDS = "read_notification_article_ids"
+        private const val KEY_DISMISSED_NOTIFICATION_IDS = "dismissed_notification_article_ids"
+        private const val KEY_SAVED_ARTICLE_IDS = "saved_bookmarked_article_ids"
         private const val RECENT_SEARCH_DELIMITER = "|||"
         private const val MAX_RECENT_SEARCHES = 6
         private val DEFAULT_RECENT_SEARCHES = emptyList<String>()

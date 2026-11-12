@@ -109,10 +109,16 @@ object NewsNotificationHelper {
             .filter { it.isNotEmpty() }
             .toMutableList()
 
-        // Prefer a story that has a valid image and hasn't been notified yet
-        val candidate = articles.firstOrNull { it.hasValidImage && it.id !in notifiedSet }
-            ?: articles.firstOrNull { it.id !in notifiedSet }
-            ?: return@withContext false
+        // Only notify for fresh dispatches published within the last 12 hours so old stories never trigger alerts
+        val minFreshTimestamp = System.currentTimeMillis() - (12L * 3600L * 1000L)
+        val freshArticles = articles
+            .filter { it.publishedAt >= minFreshTimestamp && it.id !in notifiedSet }
+            .sortedByDescending { it.publishedAt }
+
+        if (freshArticles.isEmpty()) return@withContext false
+
+        // Prefer a fresh breaking story that has a valid hero image
+        val candidate = freshArticles.firstOrNull { it.hasValidImage } ?: freshArticles.first()
 
         val sent = postRichArticleNotification(context, candidate, language)
         if (sent) {
