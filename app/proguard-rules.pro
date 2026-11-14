@@ -20,8 +20,11 @@
 # Adhan Prayer Times library
 -keep class com.batoulapps.adhan.** { *; }
 
-# Firebase AI Logic, App Check, and Google Play Services
+# Firebase AI Logic, App Check, Remote Config, and Init Provider
 -keep class com.google.firebase.** { *; }
+-keep class com.google.firebase.provider.FirebaseInitProvider { *; }
+-keep class com.google.firebase.components.ComponentDiscoveryService { *; }
+-keep class * implements com.google.firebase.components.ComponentRegistrar { *; }
 -keep class com.google.android.gms.** { *; }
 -keep class com.google.android.recaptcha.** { *; }
 -dontwarn com.google.firebase.**

@@ -18,7 +18,7 @@
     </entry>
     <entry>
         <key>video_section_enabled</key>
-        <value>true</value>
+        <value>false</value>
     </entry>
     <entry>
         <key>article_retention_days</key>

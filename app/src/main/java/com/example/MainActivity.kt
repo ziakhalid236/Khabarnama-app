@@ -27,6 +27,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
+        com.example.util.FirebaseInitHelper.registerContext(this)
         configureAppCheck(this, intent)
         com.example.data.remote.RemoteConfigManager.initialize(this)
         NewsNotificationHelper.ensureNotificationChannel(this)

@@ -54,6 +54,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -68,6 +69,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -111,9 +113,8 @@ import com.example.ui.components.NotificationsPage
 import com.example.ui.components.PrayerTimesDialog
 import com.example.ui.components.SettingsDialog
 import com.example.ui.components.SplashScreen
-import com.example.ui.components.TrendingVideosStrip
 import com.example.ui.components.UrduAppBar
-import com.example.ui.components.VideoPlayerDialog
+import kotlinx.coroutines.delay
 import com.example.ui.theme.CrimsonBreaking
 import com.example.ui.theme.DeepEmerald
 import com.example.ui.theme.EmeraldTint
@@ -449,7 +450,7 @@ private fun MainNewsContent(
                         }
 
                         when {
-                            // 1. Loading Skeleton State
+                            // 1. First-Launch Countdown + Loading Skeleton State
                             isInitialLoading && articles.isEmpty() -> {
                                 LazyColumn(
                                     contentPadding = PaddingValues(
@@ -463,7 +464,10 @@ private fun MainNewsContent(
                                         .fillMaxSize()
                                         .testTag("loading_skeleton_list")
                                 ) {
-                                    items(3) {
+                                    item(key = "first_launch_countdown_card") {
+                                        FirstLaunchSyncCountdownCard()
+                                    }
+                                    items(2) {
                                         NewsCardSkeleton()
                                     }
                                 }
@@ -531,7 +535,10 @@ private fun MainNewsContent(
 
                                             Button(
                                                 onClick = { viewModel.refreshNews() },
-                                                colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = DeepEmerald,
+                                                    contentColor = PureWhite
+                                                ),
                                                 shape = RoundedCornerShape(12.dp),
                                                 modifier = Modifier
                                                     .heightIn(min = 48.dp)
@@ -540,6 +547,7 @@ private fun MainNewsContent(
                                                 Icon(
                                                     imageVector = Icons.Outlined.Refresh,
                                                     contentDescription = "Retry loading news",
+                                                    tint = PureWhite,
                                                     modifier = Modifier.size(18.dp)
                                                 )
                                                 Spacer(modifier = Modifier.width(8.dp))
@@ -547,7 +555,8 @@ private fun MainNewsContent(
                                                     text = "Retry",
                                                     fontFamily = Inter,
                                                     fontWeight = FontWeight.SemiBold,
-                                                    fontSize = 14.sp
+                                                    fontSize = 14.sp,
+                                                    color = PureWhite
                                                 )
                                             }
                                         }
@@ -705,29 +714,6 @@ private fun MainNewsContent(
                                                 currentLanguage = currentLanguage,
                                                 onGenerate = { viewModel.generateSituationBrief() },
                                                 onDismiss = { viewModel.dismissSituationBrief() }
-                                            )
-                                        }
-                                    }
-
-                                    // Trending News Video Clips & Official Live Broadcast Channels
-                                    if (!isSearchOpen && searchQuery.isBlank() && remoteConfig.videoSectionEnabled && (videoClips.isNotEmpty() || liveChannels.isNotEmpty())) {
-                                        item(key = "trending_videos_strip") {
-                                            val isVideoStripVisible by remember {
-                                                derivedStateOf {
-                                                    selectedArticleForDetail == null &&
-                                                        selectedVideoClip == null &&
-                                                        !isShowingSettingsDialog &&
-                                                        listState.layoutInfo.visibleItemsInfo.any {
-                                                            it.key == "trending_videos_strip"
-                                                        }
-                                                }
-                                            }
-                                            TrendingVideosStrip(
-                                                videos = videoClips,
-                                                liveChannels = liveChannels,
-                                                currentLanguage = currentLanguage,
-                                                isSectionVisibleOnScreen = isVideoStripVisible,
-                                                onVideoClick = { viewModel.openVideoClip(it) }
                                             )
                                         }
                                     }
@@ -943,14 +929,6 @@ private fun MainNewsContent(
                 )
             }
 
-            // Embedded Official Source Video Player Dialog
-            selectedVideoClip?.let { clip ->
-                VideoPlayerDialog(
-                    clip = clip,
-                    currentLanguage = currentLanguage,
-                    onDismiss = { viewModel.closeVideoClip() }
-                )
-            }
         }
 
         // Image Source Bottom Sheet
@@ -1317,7 +1295,8 @@ private fun LiveSituationBriefBanner(
                                 text = "Brief Me",
                                 fontFamily = Inter,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp
+                                fontSize = 12.sp,
+                                color = DeepEmerald
                             )
                         }
                     }
@@ -1565,5 +1544,105 @@ private fun LiveRemoteBulletinBanner(
         }
     }
 }
+
+@Composable
+private fun FirstLaunchSyncCountdownCard() {
+    val totalSeconds = 12
+    var remainingSeconds by remember { mutableIntStateOf(totalSeconds) }
+
+    LaunchedEffect(Unit) {
+        while (remainingSeconds > 0) {
+            delay(1000L)
+            remainingSeconds -= 1
+        }
+    }
+
+    val progress = ((totalSeconds - remainingSeconds).toFloat() / totalSeconds.toFloat()).coerceIn(0.08f, 1f)
+    val stageMessage = when {
+        remainingSeconds > 8 -> "Connecting to global & Islamic wire services..."
+        remainingSeconds > 4 -> "Fetching latest security, Palestine & world dispatches..."
+        remainingSeconds > 0 -> "Preparing your verified news edition..."
+        else -> "Finalizing live feed — almost ready..."
+    }
+
+    Surface(
+        color = PureWhite,
+        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.2.dp, DeepEmerald, RoundedCornerShape(18.dp))
+            .testTag("first_launch_countdown_card")
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.4.dp,
+                        color = DeepEmerald
+                    )
+                    Column {
+                        Text(
+                            text = "FIRST-TIME LIVE SYNC",
+                            fontFamily = Inter,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 11.5.sp,
+                            letterSpacing = 0.7.sp,
+                            color = InkPrimary
+                        )
+                        Text(
+                            text = stageMessage,
+                            fontFamily = Inter,
+                            fontSize = 12.sp,
+                            color = SoftGrey
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(DeepEmerald)
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                        .testTag("first_launch_countdown_badge")
+                ) {
+                    Text(
+                        text = if (remainingSeconds > 0) "~${remainingSeconds}s" else "Syncing",
+                        fontFamily = Inter,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = PureWhite,
+                        maxLines = 1,
+                        softWrap = false
+                    )
+                }
+            }
+
+            LinearProgressIndicator(
+                progress = { progress },
+                color = DeepEmerald,
+                trackColor = WarmDivider,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+            )
+        }
+    }
+}
+
 
 

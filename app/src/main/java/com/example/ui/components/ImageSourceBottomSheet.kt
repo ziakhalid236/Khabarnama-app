@@ -283,12 +283,16 @@ fun ImageSourceBottomSheet(
                         .weight(1f)
                         .heightIn(min = 48.dp)
                         .testTag("open_in_browser_button"),
-                    colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = DeepEmerald,
+                        contentColor = PureWhite
+                    ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.OpenInBrowser,
                         contentDescription = "Open in browser",
+                        tint = PureWhite,
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
@@ -296,7 +300,8 @@ fun ImageSourceBottomSheet(
                         text = "Open in Browser",
                         fontFamily = Inter,
                         fontWeight = FontWeight.SemiBold,
-                        fontSize = 13.sp
+                        fontSize = 13.sp,
+                        color = PureWhite
                     )
                 }
 

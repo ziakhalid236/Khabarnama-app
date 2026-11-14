@@ -56,6 +56,9 @@ class FirebaseIntelligenceService {
     private var cachedSituationModelPair: Pair<String, com.google.firebase.ai.GenerativeModel>? = null
 
     private fun getArticleBriefingModel(): com.google.firebase.ai.GenerativeModel {
+        check(com.example.util.FirebaseInitHelper.ensureInitialized()) {
+            "Cloud intelligence service is initializing. Please retry in a moment."
+        }
         val targetModelName = com.example.data.remote.RemoteConfigManager.config.value.aiModelName
         val current = cachedArticleModelPair
         if (current != null && current.first == targetModelName) return current.second
@@ -83,6 +86,9 @@ class FirebaseIntelligenceService {
     }
 
     private fun getSituationBriefModel(): com.google.firebase.ai.GenerativeModel {
+        check(com.example.util.FirebaseInitHelper.ensureInitialized()) {
+            "Cloud intelligence service is initializing. Please retry in a moment."
+        }
         val targetModelName = com.example.data.remote.RemoteConfigManager.config.value.aiModelName
         val current = cachedSituationModelPair
         if (current != null && current.first == targetModelName) return current.second

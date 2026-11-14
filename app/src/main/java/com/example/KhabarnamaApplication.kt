@@ -5,12 +5,14 @@ import coil.ImageLoader
 import coil.ImageLoaderFactory
 import coil.disk.DiskCache
 import coil.memory.MemoryCache
+import com.example.util.FirebaseInitHelper
 import kotlinx.coroutines.Dispatchers
 
 class KhabarnamaApplication : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+        FirebaseInitHelper.registerContext(this)
     }
 
     override fun newImageLoader(): ImageLoader {

@@ -466,7 +466,8 @@ fun ArticleDetailDialog(
                                     fontSize = 13.sp,
                                     color = InkPrimary,
                                     maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
 
                                 Icon(
@@ -480,7 +481,9 @@ fun ArticleDetailDialog(
                                     text = "•",
                                     fontFamily = Inter,
                                     fontSize = 12.sp,
-                                    color = SoftGrey
+                                    color = SoftGrey,
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
 
                                 Row(
@@ -497,7 +500,9 @@ fun ArticleDetailDialog(
                                         text = PrayerTimesUtil.formatRelativeTime(article.publishedAt, AppLanguage.ENGLISH),
                                         fontFamily = Inter,
                                         fontSize = 12.sp,
-                                        color = SoftGrey
+                                        color = SoftGrey,
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
                             }
@@ -643,12 +648,16 @@ fun ArticleDetailDialog(
                                     .weight(1f)
                                     .heightIn(min = 48.dp)
                                     .testTag("read_at_source_button"),
-                                colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = DeepEmerald,
+                                    contentColor = PureWhite
+                                ),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
                                     contentDescription = "Open full article at source",
+                                    tint = PureWhite,
                                     modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -656,7 +665,10 @@ fun ArticleDetailDialog(
                                     text = "Read full source",
                                     fontFamily = Inter,
                                     fontWeight = FontWeight.SemiBold,
-                                    fontSize = 14.sp
+                                    fontSize = 14.sp,
+                                    color = PureWhite,
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                             }
 
@@ -909,6 +921,7 @@ private fun IntelligenceBriefingCard(
                                 Icon(
                                     imageVector = Icons.Default.Refresh,
                                     contentDescription = null,
+                                    tint = PureWhite,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
@@ -916,7 +929,8 @@ private fun IntelligenceBriefingCard(
                                     text = "Retry Briefing",
                                     fontFamily = Inter,
                                     fontWeight = FontWeight.SemiBold,
-                                    fontSize = 13.sp
+                                    fontSize = 13.sp,
+                                    color = PureWhite
                                 )
                             }
                         }

@@ -88,87 +88,76 @@ val AppTypography = Typography(
         fontWeight = FontWeight.ExtraBold,
         fontSize = 32.sp,
         lineHeight = 40.sp,
-        letterSpacing = (-0.5).sp,
-        color = InkPrimary
+        letterSpacing = (-0.5).sp
     ),
     headlineMedium = TextStyle(
         fontFamily = PlayfairDisplay,
         fontWeight = FontWeight.Bold,
         fontSize = 24.sp,
         lineHeight = 32.sp,
-        letterSpacing = (-0.25).sp,
-        color = InkPrimary
+        letterSpacing = (-0.25).sp
     ),
     titleLarge = TextStyle(
         fontFamily = PlayfairDisplay,
         fontWeight = FontWeight.Bold,
         fontSize = 20.sp,
         lineHeight = 28.sp,
-        letterSpacing = 0.sp,
-        color = InkPrimary
+        letterSpacing = 0.sp
     ),
     titleMedium = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.SemiBold,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.1.sp,
-        color = InkPrimary
+        letterSpacing = 0.1.sp
     ),
     titleSmall = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.SemiBold,
         fontSize = 15.sp,
         lineHeight = 22.sp,
-        letterSpacing = 0.1.sp,
-        color = InkPrimary
+        letterSpacing = 0.1.sp
     ),
     bodyLarge = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.Normal,
         fontSize = 15.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.15.sp,
-        color = InkPrimary
+        letterSpacing = 0.15.sp
     ),
     bodyMedium = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.Normal,
         fontSize = 14.sp,
         lineHeight = 22.sp,
-        letterSpacing = 0.15.sp,
-        color = SoftGrey
+        letterSpacing = 0.15.sp
     ),
     bodySmall = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 18.sp,
-        letterSpacing = 0.2.sp,
-        color = SoftGrey
+        letterSpacing = 0.2.sp
     ),
     labelLarge = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.SemiBold,
         fontSize = 13.sp,
         lineHeight = 18.sp,
-        letterSpacing = 0.15.sp,
-        color = InkPrimary
+        letterSpacing = 0.15.sp
     ),
     labelMedium = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.2.sp,
-        color = SoftGrey
+        letterSpacing = 0.2.sp
     ),
     labelSmall = TextStyle(
         fontFamily = Inter,
         fontWeight = FontWeight.Medium,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.2.sp,
-        color = SoftGrey
+        letterSpacing = 0.2.sp
     )
 )

@@ -381,20 +381,24 @@ fun FeaturedIslamicCarousel(
                                         fontSize = 12.sp,
                                         color = DeepEmerald,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false)
                                     )
                                     Text(
                                         text = "•",
                                         fontFamily = Inter,
                                         fontSize = 12.sp,
-                                        color = SoftGrey
+                                        color = SoftGrey,
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                     Text(
                                         text = PrayerTimesUtil.formatRelativeTime(article.publishedAt, AppLanguage.ENGLISH),
                                         fontFamily = Inter,
                                         fontSize = 12.sp,
                                         color = SoftGrey,
-                                        maxLines = 1
+                                        maxLines = 1,
+                                        softWrap = false
                                     )
                                 }
 

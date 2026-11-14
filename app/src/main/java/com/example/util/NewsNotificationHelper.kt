@@ -49,7 +49,10 @@ object NewsNotificationHelper {
     const val KEY_NOTIFICATIONS_ENABLED = "breaking_notifications_enabled"
     const val KEY_NOTIFICATION_FOCUS = "notification_alert_focus"
     private const val KEY_NOTIFIED_IDS = "notified_article_ids"
+    const val KEY_INSTALL_BASELINE_MS = "notification_install_baseline_ms"
+    const val KEY_BASELINE_ARTICLE_IDS = "notification_baseline_article_ids"
     private const val MAX_STORED_NOTIFIED_IDS = 80
+    private const val MAX_STORED_BASELINE_IDS = 350
 
     private val imageHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -107,9 +110,53 @@ object NewsNotificationHelper {
         prefs.edit().putString(KEY_NOTIFICATION_FOCUS, focus.name).apply()
     }
 
+    fun isBaselineEstablished(context: Context): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getLong(KEY_INSTALL_BASELINE_MS, 0L) > 0L
+    }
+
+    fun getInstallBaselineMs(context: Context): Long {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getLong(KEY_INSTALL_BASELINE_MS, 0L)
+    }
+
+    fun getBaselineArticleIds(context: Context): Set<String> {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val raw = prefs.getString(KEY_BASELINE_ARTICLE_IDS, "").orEmpty()
+        if (raw.isBlank()) return emptySet()
+        return raw.split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .toSet()
+    }
+
+    /**
+     * Records all initial articles on first launch as the installation baseline so pre-existing
+     * RSS stories never flood the Notifications tab or trigger push alerts right after install.
+     * Returns true if this call established a brand-new baseline.
+     */
+    fun establishInstallBaselineIfNeeded(context: Context, initialArticles: List<NewsArticle>): Boolean {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val existingBaselineMs = prefs.getLong(KEY_INSTALL_BASELINE_MS, 0L)
+        if (existingBaselineMs > 0L) {
+            return false
+        }
+        val baselineTimestamp = System.currentTimeMillis()
+        val baselineIds = initialArticles
+            .map { it.id.trim() }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .take(MAX_STORED_BASELINE_IDS)
+        prefs.edit()
+            .putLong(KEY_INSTALL_BASELINE_MS, baselineTimestamp)
+            .putString(KEY_BASELINE_ARTICLE_IDS, baselineIds.joinToString(","))
+            .commit()
+        return true
+    }
+
     /**
      * Automatically sends a rich image notification for the newest high-priority breaking story
-     * respecting the user's alert focus and excluding Sports/Business noise.
+     * arriving after the install baseline, respecting alert focus and excluding Sports/Business.
      */
     suspend fun notifyLatestBreakingNewsIfNew(
         context: Context,
@@ -121,7 +168,15 @@ object NewsNotificationHelper {
         }
         if (articles.isEmpty()) return@withContext false
 
+        // On first baseline establishing sync, record existing articles quietly and do not push old news
+        if (!isBaselineEstablished(context)) {
+            establishInstallBaselineIfNeeded(context, articles)
+            return@withContext false
+        }
+
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val baselineMs = prefs.getLong(KEY_INSTALL_BASELINE_MS, 0L)
+        val baselineIds = getBaselineArticleIds(context)
         val notifiedRaw = prefs.getString(KEY_NOTIFIED_IDS, "").orEmpty()
         val notifiedSet = notifiedRaw.split(",")
             .map { it.trim() }
@@ -130,10 +185,12 @@ object NewsNotificationHelper {
 
         val focus = getNotificationFocus(context)
 
-        // Only notify for fresh dispatches published within the last 12 hours, never Sports/Business
-        val minFreshTimestamp = System.currentTimeMillis() - (12L * 3600L * 1000L)
+        // Only notify for genuinely new dispatches published after install baseline & within 12h
+        val twelveHoursAgo = System.currentTimeMillis() - (12L * 3600L * 1000L)
+        val minFreshTimestamp = maxOf(twelveHoursAgo, baselineMs)
         val eligiblePool = articles.filter { article ->
-            article.publishedAt >= minFreshTimestamp &&
+            article.publishedAt > minFreshTimestamp &&
+                article.id !in baselineIds &&
                 article.id !in notifiedSet &&
                 article.category != com.example.model.NewsCategory.SPORTS &&
                 article.category != com.example.model.NewsCategory.BUSINESS
@@ -229,8 +286,8 @@ object NewsNotificationHelper {
                 .setSummaryText(summary.take(180))
 
             val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_monochrome)
-                .setColor(0xFF0F5C4D.toInt())
+                .setSmallIcon(R.drawable.ic_notification_k)
+                .setColor(0xFF0D0D0E.toInt())
                 .setSubText(subLabel)
                 .setContentTitle(title)
                 .setContentText(summary)

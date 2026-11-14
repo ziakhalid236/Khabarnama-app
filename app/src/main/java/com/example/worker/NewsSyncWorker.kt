@@ -23,6 +23,7 @@ class NewsSyncWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
+        com.example.util.FirebaseInitHelper.registerContext(applicationContext)
         com.example.util.configureAppCheck(applicationContext, null)
         com.example.data.remote.RemoteConfigManager.initialize(applicationContext)
         com.example.data.remote.RemoteConfigManager.refreshNow()
@@ -37,7 +38,6 @@ class NewsSyncWorker(
         )
 
         val status = repository.syncFromRemote()
-        runCatching { repository.syncVideosFromRemote() }
         if (status == SyncStatus.SUCCESS) {
             runCatching {
                 val prefs = applicationContext.getSharedPreferences("khabarnama_prefs", Context.MODE_PRIVATE)

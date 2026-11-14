@@ -551,7 +551,7 @@ fun NotificationsPage(
                                         text = when (selectedInboxTab) {
                                             InboxTab.SAVED -> "Tap the Save icon on any news card or notification to bookmark stories for offline reading."
                                             InboxTab.UNREAD -> "All recent breaking alerts have been read. Switch to 'All Alerts' or pull down to refresh."
-                                            InboxTab.ALL -> "Pull down to check for new breaking dispatches or choose another category above."
+                                            InboxTab.ALL -> "New breaking alerts arriving after installation will appear here. Pull down to check anytime."
                                         },
                                         fontFamily = Inter,
                                         fontSize = 13.sp,

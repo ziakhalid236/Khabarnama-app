@@ -339,31 +339,42 @@ class NewsViewModel @JvmOverloads constructor(
                 if (activeRequestId.get() == requestId && fastStatus == SyncStatus.SUCCESS) {
                     _isOffline.value = false
                     _errorMessage.value = null
+                    // Establish install baseline silently so pre-existing RSS stories don't flood Notifications
+                    if (!NewsNotificationHelper.isBaselineEstablished(getApplication())) {
+                        val baselinePool = repository.getRecentAlertArticles(limit = 50)
+                        NewsNotificationHelper.establishInstallBaselineIfNeeded(getApplication(), baselinePool)
+                    }
                     reloadFromCacheInternal(requestId)
                     _isInitialLoading.value = false
                     _isBackgroundSyncing.value = true
                 }
             }
 
-            // Full live RSS + official video channel sync in parallel
-            val videoSyncDeferred = async(Dispatchers.IO) { repository.syncVideosFromRemote() }
+            // Full live RSS sync
             val status = repository.syncFromRemote()
-            videoSyncDeferred.await()
 
             if (activeRequestId.get() == requestId) {
                 _isBackgroundSyncing.value = false
                 handleSyncStatus(status)
+                val wasBaselineAlreadySet = NewsNotificationHelper.isBaselineEstablished(getApplication())
+                if (!wasBaselineAlreadySet && status == SyncStatus.SUCCESS) {
+                    val baselinePool = repository.getRecentAlertArticles(limit = 60)
+                    NewsNotificationHelper.establishInstallBaselineIfNeeded(getApplication(), baselinePool)
+                }
                 reloadFromCacheInternal(requestId)
                 _isInitialLoading.value = false
-                if (status == SyncStatus.SUCCESS) {
-                    val alertPool = _notificationArticles.value.ifEmpty { _articles.value }
-                    val lang = _currentLanguage.value
-                    viewModelScope.launch(Dispatchers.IO) {
-                        NewsNotificationHelper.notifyLatestBreakingNewsIfNew(
-                            context = getApplication(),
-                            articles = alertPool,
-                            language = lang
-                        )
+                // Never fire a push alert on the initial baseline-establishing sync
+                if (status == SyncStatus.SUCCESS && wasBaselineAlreadySet) {
+                    val alertPool = _notificationArticles.value
+                    if (alertPool.isNotEmpty()) {
+                        val lang = _currentLanguage.value
+                        viewModelScope.launch(Dispatchers.IO) {
+                            NewsNotificationHelper.notifyLatestBreakingNewsIfNew(
+                                context = getApplication(),
+                                articles = alertPool,
+                                language = lang
+                            )
+                        }
                     }
                 }
             }
@@ -448,17 +459,24 @@ class NewsViewModel @JvmOverloads constructor(
         _videoClips.value = applyCachedVideoTranslations(videos, lang)
 
         val dismissed = _dismissedNotificationIds.value
-        val alertSourceList = if (rawNotifications.isNotEmpty()) {
-            rawNotifications.filterNot {
-                it.category == NewsCategory.SPORTS || it.category == NewsCategory.BUSINESS
-            }.ifEmpty { rawNotifications }
+        val appCtx = getApplication<Application>()
+        val baselineEstablished = NewsNotificationHelper.isBaselineEstablished(appCtx)
+        val filteredAlerts = if (!baselineEstablished) {
+            // Until initial baseline is established, keep notification inbox cleanly at 0
+            emptyList()
         } else {
-            (pageResult.articles + featured).distinctBy { it.id }.sortedByDescending { it.publishedAt }.take(20)
+            val baselineMs = NewsNotificationHelper.getInstallBaselineMs(appCtx)
+            val baselineIds = NewsNotificationHelper.getBaselineArticleIds(appCtx)
+            val alertSourceList = rawNotifications.filter { article ->
+                article.id !in dismissed &&
+                    article.id !in baselineIds &&
+                    article.publishedAt > baselineMs &&
+                    article.category != NewsCategory.SPORTS &&
+                    article.category != NewsCategory.BUSINESS
+            }
+            alertSourceList
         }
-        _notificationArticles.value = applyRuntimeTranslationFlags(
-            alertSourceList.filterNot { it.id in dismissed },
-            lang
-        )
+        _notificationArticles.value = applyRuntimeTranslationFlags(filteredAlerts, lang)
         _savedArticles.value = applyRuntimeTranslationFlags(savedList, lang)
 
         pendingNotificationArticleId?.let { targetId ->
@@ -552,26 +570,31 @@ class NewsViewModel @JvmOverloads constructor(
             _errorMessage.value = null
 
             val rcDeferred = async(Dispatchers.IO) { RemoteConfigManager.refreshNow() }
-            val videoDeferred = async(Dispatchers.IO) { repository.syncVideosFromRemote() }
             val status = repository.syncFromRemote()
             rcDeferred.await()
-            videoDeferred.await()
 
             if (activeRequestId.get() == requestId) {
                 _isBackgroundSyncing.value = false
                 handleSyncStatus(status)
+                val wasBaselineAlreadySet = NewsNotificationHelper.isBaselineEstablished(getApplication())
+                if (!wasBaselineAlreadySet && status == SyncStatus.SUCCESS) {
+                    val baselinePool = repository.getRecentAlertArticles(limit = 60)
+                    NewsNotificationHelper.establishInstallBaselineIfNeeded(getApplication(), baselinePool)
+                }
                 reloadFromCacheInternal(requestId)
                 _isRefreshing.value = false
                 _isInitialLoading.value = false
-                if (status == SyncStatus.SUCCESS) {
-                    val alertPool = _notificationArticles.value.ifEmpty { _articles.value }
-                    val lang = _currentLanguage.value
-                    viewModelScope.launch(Dispatchers.IO) {
-                        NewsNotificationHelper.notifyLatestBreakingNewsIfNew(
-                            context = getApplication(),
-                            articles = alertPool,
-                            language = lang
-                        )
+                if (status == SyncStatus.SUCCESS && wasBaselineAlreadySet) {
+                    val alertPool = _notificationArticles.value
+                    if (alertPool.isNotEmpty()) {
+                        val lang = _currentLanguage.value
+                        viewModelScope.launch(Dispatchers.IO) {
+                            NewsNotificationHelper.notifyLatestBreakingNewsIfNew(
+                                context = getApplication(),
+                                articles = alertPool,
+                                language = lang
+                            )
+                        }
                     }
                 }
             }

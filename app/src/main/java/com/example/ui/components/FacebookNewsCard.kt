@@ -434,7 +434,8 @@ fun FacebookNewsCard(
                                 fontSize = 13.sp,
                                 color = InkPrimary,
                                 maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
                             )
 
                             Icon(
@@ -448,7 +449,9 @@ fun FacebookNewsCard(
                                 text = "•",
                                 fontFamily = Inter,
                                 fontSize = 12.sp,
-                                color = SoftGrey
+                                color = SoftGrey,
+                                maxLines = 1,
+                                softWrap = false
                             )
 
                             Text(
@@ -457,7 +460,8 @@ fun FacebookNewsCard(
                                 fontWeight = FontWeight.Normal,
                                 fontSize = 12.sp,
                                 color = SoftGrey,
-                                maxLines = 1
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
 

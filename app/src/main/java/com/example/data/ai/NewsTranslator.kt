@@ -50,6 +50,9 @@ class GeminiNewsTranslator(
     private var cachedTranslationModelPair: Pair<String, com.google.firebase.ai.GenerativeModel>? = null
 
     private fun getGenerativeModel(): com.google.firebase.ai.GenerativeModel {
+        check(com.example.util.FirebaseInitHelper.ensureInitialized()) {
+            "FirebaseApp not initialized"
+        }
         val targetModelName = com.example.data.remote.RemoteConfigManager.config.value.aiModelName
         val current = cachedTranslationModelPair
         if (current != null && current.first == targetModelName) return current.second

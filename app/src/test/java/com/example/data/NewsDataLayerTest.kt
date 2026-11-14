@@ -744,4 +744,61 @@ class NewsDataLayerTest {
         assertTrue(mutedHtml.contains("origin=https://www.youtube.com"))
         assertTrue(mutedHtml.contains("referrerpolicy=\"strict-origin-when-cross-origin\""))
     }
+
+    @Test
+    fun item13_installBaselineSuppressesStaleNotifications_andAllowsNewPostInstallAlerts() {
+        val prefs = context.getSharedPreferences("khabarnama_prefs", android.content.Context.MODE_PRIVATE)
+        prefs.edit().clear().commit()
+
+        val oldTime = System.currentTimeMillis() - 60_000L
+        val preInstallArticle = com.example.model.NewsArticle(
+            id = "pre_install_1",
+            translations = mapOf(
+                com.example.model.AppLanguage.ENGLISH to com.example.model.LocalizedContent(
+                    title = "Pre-install headline",
+                    summary = "Pre-install summary"
+                )
+            ),
+            category = NewsCategory.PALESTINE,
+            sourceName = "Arab News",
+            sourceUrl = "https://arabnews.com/1",
+            publishedAt = oldTime
+        )
+
+        assertFalse(com.example.util.NewsNotificationHelper.isBaselineEstablished(context))
+        val newlyEstablished = com.example.util.NewsNotificationHelper.establishInstallBaselineIfNeeded(
+            context,
+            listOf(preInstallArticle)
+        )
+        assertTrue(newlyEstablished)
+        assertTrue(com.example.util.NewsNotificationHelper.isBaselineEstablished(context))
+        assertTrue("pre_install_1" in com.example.util.NewsNotificationHelper.getBaselineArticleIds(context))
+
+        // Second call must be a no-op
+        val secondCall = com.example.util.NewsNotificationHelper.establishInstallBaselineIfNeeded(
+            context,
+            listOf(preInstallArticle.copy(id = "later_article"))
+        )
+        assertFalse(secondCall)
+    }
+
+    @Test
+    fun item14_firebaseInitHelperRegistersContextSafely() {
+        val result = com.example.util.FirebaseInitHelper.ensureInitialized(context)
+        // Whether google-services values are present or mocked in Robolectric, must never crash
+        assertTrue(result || com.google.firebase.FirebaseApp.getApps(context).isEmpty())
+    }
+
+    @Test
+    fun item15_typographyHasUnspecifiedColor_andVideoSectionDisabledByDefault() {
+        assertEquals(
+            androidx.compose.ui.graphics.Color.Unspecified,
+            com.example.ui.theme.AppTypography.labelLarge.color
+        )
+        assertEquals(
+            androidx.compose.ui.graphics.Color.Unspecified,
+            com.example.ui.theme.AppTypography.bodyMedium.color
+        )
+        assertFalse(com.example.data.remote.AppRemoteConfig().videoSectionEnabled)
+    }
 }

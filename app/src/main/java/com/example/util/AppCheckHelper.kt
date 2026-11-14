@@ -20,8 +20,9 @@ private const val RECAPTCHA_SITE_KEY_RES = "recaptcha_site_key"
 @SuppressLint("ApplySharedPref", "DiscouragedApi")
 fun configureAppCheck(context: Context, intent: Intent?) {
     try {
-        if (FirebaseApp.getApps(context).isEmpty()) {
-            FirebaseApp.initializeApp(context)
+        if (!FirebaseInitHelper.ensureInitialized(context)) {
+            Log.e(TAG, "FirebaseApp could not be initialized before App Check setup.")
+            return
         }
 
         if (BuildConfig.DEBUG) {

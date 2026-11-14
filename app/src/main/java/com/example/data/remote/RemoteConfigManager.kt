@@ -35,7 +35,7 @@ data class AppRemoteConfig(
     val aiBriefingEnabled: Boolean = true,
     val aiTranslationEnabled: Boolean = true,
     val situationBriefEnabled: Boolean = true,
-    val videoSectionEnabled: Boolean = true,
+    val videoSectionEnabled: Boolean = false,
     val articleRetentionDays: Int = 14,
     val extraNewsSources: List<NewsSourceConfig> = emptyList(),
     val disabledFeedUrls: Set<String> = emptySet(),
@@ -79,8 +79,9 @@ object RemoteConfigManager {
     fun initialize(context: Context) {
         if (!initialized.compareAndSet(false, true)) return
         runCatching {
-            if (FirebaseApp.getApps(context).isEmpty()) {
-                FirebaseApp.initializeApp(context)
+            if (!com.example.util.FirebaseInitHelper.ensureInitialized(context)) {
+                Log.w(TAG, "FirebaseApp unavailable during RemoteConfigManager.initialize")
+                return
             }
             val rc = Firebase.remoteConfig
             val settings = remoteConfigSettings {

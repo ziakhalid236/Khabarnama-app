@@ -657,7 +657,10 @@ fun SettingsDialog(
                         Button(
                             onClick = onRefreshNews,
                             enabled = !isRefreshing,
-                            colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = DeepEmerald,
+                                contentColor = PureWhite
+                            ),
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -668,12 +671,13 @@ fun SettingsDialog(
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(18.dp),
                                     strokeWidth = 2.dp,
-                                    color = Color.White
+                                    color = PureWhite
                                 )
                             } else {
                                 Icon(
                                     imageVector = Icons.Outlined.Refresh,
                                     contentDescription = "Refresh all news feeds",
+                                    tint = PureWhite,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -682,7 +686,8 @@ fun SettingsDialog(
                                 text = if (isRefreshing) "Refreshing live feeds..." else "Refresh All News Feeds Now",
                                 fontFamily = Inter,
                                 fontWeight = FontWeight.SemiBold,
-                                fontSize = 14.sp
+                                fontSize = 14.sp,
+                                color = PureWhite
                             )
                         }
 
@@ -844,7 +849,7 @@ fun SettingsDialog(
                         }
 
                         Text(
-                            text = "News publishers (${distinctSources.size}), official video channels ($videoChannelsCount), live alerts, AI model (${remoteConfig.aiModelName}), and cache retention (${remoteConfig.articleRetentionDays}d) update over-the-air via Firebase Remote Config without requiring an app reinstall.",
+                            text = "News publishers (${distinctSources.size}), live alerts, AI model (${remoteConfig.aiModelName}), and cache retention (${remoteConfig.articleRetentionDays}d) update over-the-air via Firebase Remote Config without requiring an app reinstall.",
                             fontFamily = Inter,
                             fontSize = 12.5.sp,
                             lineHeight = 19.sp,
@@ -869,7 +874,7 @@ fun SettingsDialog(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Sync Cloud Config & Video Channels",
+                                text = "Sync Live Cloud Config",
                                 fontFamily = Inter,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 13.5.sp,
