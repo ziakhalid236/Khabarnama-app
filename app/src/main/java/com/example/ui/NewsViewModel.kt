@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 
@@ -192,7 +193,8 @@ class NewsViewModel @JvmOverloads constructor(
     @Volatile
     private var nextAfterId: String = ""
 
-    // Single reload job & request generation id to prevent races between filter changes and loadMore
+    // Separate syncJob from reloadJob so category/search/language switches never strand isRefreshing=true
+    private var syncJob: Job? = null
     private var reloadJob: Job? = null
     private var loadMoreJob: Job? = null
     private var briefingJob: Job? = null
@@ -323,37 +325,46 @@ class NewsViewModel @JvmOverloads constructor(
     }
 
     private fun initialLoadAndSync() {
+        syncJob?.cancel()
         reloadJob?.cancel()
         loadMoreJob?.cancel()
         val requestId = activeRequestId.incrementAndGet()
 
-        reloadJob = viewModelScope.launch {
-            val cachedCount = repository.getCachedArticleCount()
-            if (cachedCount > 0) {
-                _isInitialLoading.value = false
-                reloadFromCacheInternal(requestId)
-                _isBackgroundSyncing.value = true
-            } else {
-                // First-time cold start: fetch top priority feeds fast (~6-8 feeds) so the user doesn't wait
-                val fastStatus = repository.syncFastPriorityBatch()
-                if (activeRequestId.get() == requestId && fastStatus == SyncStatus.SUCCESS) {
-                    _isOffline.value = false
-                    _errorMessage.value = null
-                    // Establish install baseline silently so pre-existing RSS stories don't flood Notifications
-                    if (!NewsNotificationHelper.isBaselineEstablished(getApplication())) {
-                        val baselinePool = repository.getRecentAlertArticles(limit = 50)
-                        NewsNotificationHelper.establishInstallBaselineIfNeeded(getApplication(), baselinePool)
-                    }
-                    reloadFromCacheInternal(requestId)
+        syncJob = viewModelScope.launch {
+            try {
+                val cachedCount = repository.getCachedArticleCount()
+                if (cachedCount > 0) {
                     _isInitialLoading.value = false
+                    reloadFromCacheInternal(requestId)
                     _isBackgroundSyncing.value = true
+                } else {
+                    // First-time cold start: fetch top priority feeds fast (~6-8 feeds) so the user doesn't wait
+                    val fastStatus = withTimeoutOrNull(14_000L) {
+                        repository.syncFastPriorityBatch()
+                    }
+                    if (activeRequestId.get() == requestId && fastStatus == SyncStatus.SUCCESS) {
+                        _isOffline.value = false
+                        _errorMessage.value = null
+                        // Establish install baseline silently so pre-existing RSS stories don't flood Notifications
+                        if (!NewsNotificationHelper.isBaselineEstablished(getApplication())) {
+                            val baselinePool = repository.getRecentAlertArticles(limit = 50)
+                            NewsNotificationHelper.establishInstallBaselineIfNeeded(getApplication(), baselinePool)
+                        }
+                        reloadFromCacheInternal(requestId)
+                        _isInitialLoading.value = false
+                        _isBackgroundSyncing.value = true
+                    }
                 }
-            }
 
-            // Full live RSS sync
-            val status = repository.syncFromRemote()
+                // Full live RSS sync (bounded timeout so slow feeds never stall loading state)
+                val status = withTimeoutOrNull(25_000L) {
+                    repository.syncFromRemote()
+                } ?: if (repository.getCachedArticleCount() > 0) {
+                    SyncStatus.OFFLINE_WITH_CACHE
+                } else {
+                    SyncStatus.ERROR_EMPTY_CACHE
+                }
 
-            if (activeRequestId.get() == requestId) {
                 _isBackgroundSyncing.value = false
                 handleSyncStatus(status)
                 val wasBaselineAlreadySet = NewsNotificationHelper.isBaselineEstablished(getApplication())
@@ -361,7 +372,7 @@ class NewsViewModel @JvmOverloads constructor(
                     val baselinePool = repository.getRecentAlertArticles(limit = 60)
                     NewsNotificationHelper.establishInstallBaselineIfNeeded(getApplication(), baselinePool)
                 }
-                reloadFromCacheInternal(requestId)
+                reloadFromCacheInternal(activeRequestId.get())
                 _isInitialLoading.value = false
                 // Never fire a push alert on the initial baseline-establishing sync
                 if (status == SyncStatus.SUCCESS && wasBaselineAlreadySet) {
@@ -377,6 +388,9 @@ class NewsViewModel @JvmOverloads constructor(
                         }
                     }
                 }
+            } finally {
+                _isInitialLoading.value = false
+                _isBackgroundSyncing.value = false
             }
         }
     }
@@ -555,25 +569,33 @@ class NewsViewModel @JvmOverloads constructor(
 
     fun refreshNews() {
         failedTranslations.clear()
-        reloadJob?.cancel()
+        syncJob?.cancel()
         loadMoreJob?.cancel()
         _isLoadingMore.value = false
-        val requestId = activeRequestId.incrementAndGet()
+        activeRequestId.incrementAndGet()
 
-        reloadJob = viewModelScope.launch {
-            val hadArticles = _articles.value.isNotEmpty() || _featuredIslamicArticles.value.isNotEmpty()
-            if (hadArticles) {
-                _isRefreshing.value = true
-            } else {
-                _isInitialLoading.value = true
-            }
-            _errorMessage.value = null
+        syncJob = viewModelScope.launch {
+            try {
+                val hadArticles = _articles.value.isNotEmpty() || _featuredIslamicArticles.value.isNotEmpty()
+                if (hadArticles) {
+                    _isRefreshing.value = true
+                } else {
+                    _isInitialLoading.value = true
+                }
+                _errorMessage.value = null
 
-            val rcDeferred = async(Dispatchers.IO) { RemoteConfigManager.refreshNow() }
-            val status = repository.syncFromRemote()
-            rcDeferred.await()
+                val rcDeferred = async(Dispatchers.IO) {
+                    withTimeoutOrNull(6_000L) { RemoteConfigManager.refreshNow() } ?: false
+                }
+                val status = withTimeoutOrNull(22_000L) {
+                    repository.syncFromRemote()
+                } ?: if (repository.getCachedArticleCount() > 0) {
+                    SyncStatus.OFFLINE_WITH_CACHE
+                } else {
+                    SyncStatus.ERROR_EMPTY_CACHE
+                }
+                rcDeferred.await()
 
-            if (activeRequestId.get() == requestId) {
                 _isBackgroundSyncing.value = false
                 handleSyncStatus(status)
                 val wasBaselineAlreadySet = NewsNotificationHelper.isBaselineEstablished(getApplication())
@@ -581,9 +603,7 @@ class NewsViewModel @JvmOverloads constructor(
                     val baselinePool = repository.getRecentAlertArticles(limit = 60)
                     NewsNotificationHelper.establishInstallBaselineIfNeeded(getApplication(), baselinePool)
                 }
-                reloadFromCacheInternal(requestId)
-                _isRefreshing.value = false
-                _isInitialLoading.value = false
+                reloadFromCacheInternal(activeRequestId.get())
                 if (status == SyncStatus.SUCCESS && wasBaselineAlreadySet) {
                     val alertPool = _notificationArticles.value
                     if (alertPool.isNotEmpty()) {
@@ -597,6 +617,10 @@ class NewsViewModel @JvmOverloads constructor(
                         }
                     }
                 }
+            } finally {
+                _isRefreshing.value = false
+                _isInitialLoading.value = false
+                _isBackgroundSyncing.value = false
             }
         }
     }

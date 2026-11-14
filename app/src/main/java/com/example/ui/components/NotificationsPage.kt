@@ -52,6 +52,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -495,6 +496,15 @@ fun NotificationsPage(
                 isRefreshing = isRefreshing,
                 onRefresh = onRefresh,
                 state = pullRefreshState,
+                indicator = {
+                    PullToRefreshDefaults.Indicator(
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        isRefreshing = isRefreshing,
+                        state = pullRefreshState,
+                        containerColor = PureWhite,
+                        color = DeepEmerald
+                    )
+                },
                 modifier = Modifier.fillMaxSize()
             ) {
                 LazyColumn(

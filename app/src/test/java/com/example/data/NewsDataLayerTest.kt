@@ -801,4 +801,10 @@ class NewsDataLayerTest {
         )
         assertFalse(com.example.data.remote.AppRemoteConfig().videoSectionEnabled)
     }
+
+    @Test
+    fun item16_recaptchaSiteKeyResolvesForAppCheck() {
+        val siteKey = com.example.util.resolveRecaptchaSiteKey(context)
+        assertTrue("Provisioned recaptcha_site_key must be present and non-blank for App Check", !siteKey.isNullOrBlank())
+    }
 }
