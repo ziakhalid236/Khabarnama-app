@@ -38,11 +38,14 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.outlined.CloudOff
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -50,6 +53,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -82,6 +86,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
@@ -114,6 +120,8 @@ import com.example.ui.theme.GoldTint
 import com.example.ui.theme.InkPrimary
 import com.example.ui.theme.Inter
 import com.example.ui.theme.MutedGold
+import com.example.ui.theme.NotoNaskhArabic
+import com.example.ui.theme.NotoNastaliqUrdu
 import com.example.ui.theme.PlayfairDisplay
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.SoftGrey
@@ -121,6 +129,8 @@ import com.example.ui.theme.WarmBorder
 import com.example.ui.theme.WarmDivider
 import com.example.ui.theme.WarmOffWhite
 import com.example.util.PrayerTimesUtil
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Brush
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -157,6 +167,7 @@ private fun MainNewsContent(
     val context = LocalContext.current
     val currentLanguage by viewModel.currentLanguage.collectAsStateWithLifecycle()
     val notificationsEnabled by viewModel.notificationsEnabled.collectAsStateWithLifecycle()
+    val notificationFocus by viewModel.notificationFocus.collectAsStateWithLifecycle()
     val selectedCategory by viewModel.selectedCategory.collectAsStateWithLifecycle()
     val selectedIslamicSection by viewModel.selectedIslamicSection.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -171,6 +182,7 @@ private fun MainNewsContent(
     val selectedCity by viewModel.selectedCity.collectAsStateWithLifecycle()
     val hijriAdjustment by viewModel.hijriAdjustment.collectAsStateWithLifecycle()
     val isInitialLoading by viewModel.isInitialLoading.collectAsStateWithLifecycle()
+    val isBackgroundSyncing by viewModel.isBackgroundSyncing.collectAsStateWithLifecycle()
     val isRefreshing by viewModel.isRefreshing.collectAsStateWithLifecycle()
     val isLoadingMore by viewModel.isLoadingMore.collectAsStateWithLifecycle()
     val hasMore by viewModel.hasMore.collectAsStateWithLifecycle()
@@ -179,6 +191,8 @@ private fun MainNewsContent(
 
     val activeImageSourceArticle by viewModel.activeImageSourceArticle.collectAsStateWithLifecycle()
     val selectedArticleForDetail by viewModel.selectedArticleForDetail.collectAsStateWithLifecycle()
+    val activeBriefingState by viewModel.activeBriefingState.collectAsStateWithLifecycle()
+    val situationBriefState by viewModel.situationBriefState.collectAsStateWithLifecycle()
     val isShowingPrayerDialog by viewModel.isShowingPrayerDialog.collectAsStateWithLifecycle()
     val isShowingLanguageDialog by viewModel.isShowingLanguageDialog.collectAsStateWithLifecycle()
     var isShowingSettingsDialog by remember { mutableStateOf(false) }
@@ -347,6 +361,7 @@ private fun MainNewsContent(
                         savedArticleIds = savedArticleIds,
                         currentLanguage = currentLanguage,
                         notificationsEnabled = notificationsEnabled,
+                        notificationFocus = notificationFocus,
                         readNotificationIds = readNotificationIds,
                         isRefreshing = isRefreshing,
                         onRefresh = { viewModel.refreshNews() },
@@ -370,6 +385,7 @@ private fun MainNewsContent(
                                 }
                             }
                         },
+                        onSelectNotificationFocus = { viewModel.setNotificationFocus(it) },
                         onBackToHome = { isNotificationsPageOpen = false },
                         modifier = Modifier
                             .fillMaxSize()
@@ -633,6 +649,47 @@ private fun MainNewsContent(
                                         .fillMaxSize()
                                         .testTag("news_feed_list")
                                 ) {
+                                    // Subtle background sync status pill when live dispatches are updating quietly
+                                    if (isBackgroundSyncing && !isRefreshing) {
+                                        item(key = "live_sync_status_pill") {
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clip(RoundedCornerShape(12.dp))
+                                                    .background(EmeraldTint.copy(alpha = 0.7f))
+                                                    .border(1.dp, DeepEmerald.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
+                                                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                CircularProgressIndicator(
+                                                    modifier = Modifier.size(13.dp),
+                                                    strokeWidth = 2.dp,
+                                                    color = DeepEmerald
+                                                )
+                                                Text(
+                                                    text = "Syncing latest war, security & global dispatches...",
+                                                    fontFamily = Inter,
+                                                    fontWeight = FontWeight.Medium,
+                                                    fontSize = 11.5.sp,
+                                                    color = DeepEmerald
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // Live Intelligence Situation Brief Banner (on All feed when not searching)
+                                    if (!isSearchOpen && searchQuery.isBlank() && selectedCategory == NewsCategory.ALL && articles.isNotEmpty()) {
+                                        item(key = "live_situation_brief_card") {
+                                            LiveSituationBriefBanner(
+                                                state = situationBriefState,
+                                                currentLanguage = currentLanguage,
+                                                onGenerate = { viewModel.generateSituationBrief() },
+                                                onDismiss = { viewModel.dismissSituationBrief() }
+                                            )
+                                        }
+                                    }
+
                                     // Dedicated Islamic Portal Banner (distinguishes the Islamic page completely from Home)
                                     if (!isSearchOpen && searchQuery.isBlank() && selectedCategory == NewsCategory.ISLAMIC) {
                                         item(key = "islamic_portal_header_banner") {
@@ -802,8 +859,11 @@ private fun MainNewsContent(
                 ArticleDetailDialog(
                     article = article,
                     currentLanguage = currentLanguage,
+                    briefingState = activeBriefingState,
                     isBookmarked = article.id in savedArticleIds,
                     onToggleBookmark = { viewModel.toggleBookmarkArticle(article) },
+                    onSelectLanguage = { viewModel.setLanguage(it) },
+                    onRegenerateBriefing = { viewModel.loadArticleBriefing(article, forceRefresh = true) },
                     onSourceBadgeClick = { viewModel.openImageSourceSheet(it) },
                     onDismiss = { viewModel.closeArticleDetail() },
                     onRetryTranslation = { viewModel.retryTranslations() }
@@ -880,13 +940,13 @@ private data class SuggestedSearchTopic(
 )
 
 private val SUGGESTED_SEARCH_TOPICS = listOf(
+    SuggestedSearchTopic("🛡️", "Security & War", "Security"),
+    SuggestedSearchTopic("🇵🇸", "Palestine & Gaza", "Gaza"),
+    SuggestedSearchTopic("🕌", "Islamic Scholars", "Scholars"),
     SuggestedSearchTopic("🇵🇰", "Pakistan", "Pakistan"),
-    SuggestedSearchTopic("🕌", "Makkah & Hajj", "Makkah"),
-    SuggestedSearchTopic("🌙", "Ramadan & Eid", "Ramadan"),
     SuggestedSearchTopic("🌍", "Middle East", "Middle East"),
-    SuggestedSearchTopic("📈", "Economy", "Economy"),
-    SuggestedSearchTopic("🏏", "Cricket", "Cricket"),
-    SuggestedSearchTopic("📚", "Scholars", "Scholars"),
+    SuggestedSearchTopic("🌙", "Makkah & Haramain", "Makkah"),
+    SuggestedSearchTopic("🛰️", "Defense & OSINT", "Defense"),
     SuggestedSearchTopic("💻", "Technology", "Technology")
 )
 
@@ -1109,3 +1169,259 @@ private fun SearchDiscoveryHeader(
         }
     }
 }
+
+@Composable
+private fun LiveSituationBriefBanner(
+    state: SituationBriefUiState,
+    currentLanguage: AppLanguage,
+    onGenerate: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    val isUrdu = currentLanguage == AppLanguage.URDU
+    val isArabic = currentLanguage == AppLanguage.ARABIC
+    val isRtl = isUrdu || isArabic
+
+    val bodyFont = when {
+        isUrdu -> NotoNastaliqUrdu
+        isArabic -> NotoNaskhArabic
+        else -> Inter
+    }
+
+    Surface(
+        color = PureWhite,
+        shape = RoundedCornerShape(18.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, GoldBorder, RoundedCornerShape(18.dp))
+            .testTag("live_situation_brief_banner")
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            GoldTint.copy(alpha = 0.6f),
+                            EmeraldTint.copy(alpha = 0.45f),
+                            PureWhite
+                        )
+                    )
+                )
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(DeepEmerald),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "Intelligence Situation Digest",
+                            tint = Color(0xFFF3DFA2),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Live Intelligence Digest",
+                            fontFamily = PlayfairDisplay,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.5.sp,
+                            color = InkPrimary
+                        )
+                        Text(
+                            text = "War, security, Palestine & scholars brief in ${currentLanguage.displayName}",
+                            fontFamily = Inter,
+                            fontSize = 11.5.sp,
+                            color = SoftGrey
+                        )
+                    }
+                }
+
+                when (state) {
+                    SituationBriefUiState.Idle -> {
+                        Button(
+                            onClick = onGenerate,
+                            colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            modifier = Modifier
+                                .heightIn(min = 36.dp)
+                                .testTag("generate_situation_brief_button")
+                        ) {
+                            Text(
+                                text = "Brief Me",
+                                fontFamily = Inter,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+
+                    SituationBriefUiState.Loading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = DeepEmerald
+                        )
+                    }
+
+                    is SituationBriefUiState.Success, is SituationBriefUiState.Error -> {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                onClick = onGenerate,
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = "Refresh situation brief",
+                                    tint = DeepEmerald,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                            }
+                            IconButton(
+                                onClick = onDismiss,
+                                modifier = Modifier.size(34.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close situation brief",
+                                    tint = SoftGrey,
+                                    modifier = Modifier.size(17.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            when (state) {
+                SituationBriefUiState.Idle -> Unit
+                SituationBriefUiState.Loading -> {
+                    Text(
+                        text = "Synthesizing top security, geopolitical & scholarly dispatches...",
+                        fontFamily = Inter,
+                        fontSize = 12.5.sp,
+                        color = DeepEmerald
+                    )
+                }
+
+                is SituationBriefUiState.Error -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Info,
+                            contentDescription = null,
+                            tint = GoldTextDark,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = state.message,
+                            fontFamily = Inter,
+                            fontSize = 12.sp,
+                            color = SoftGrey,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                is SituationBriefUiState.Success -> {
+                    val brief = state.brief
+                    HorizontalDivider(thickness = 1.dp, color = GoldBorder.copy(alpha = 0.6f))
+                    CompositionLocalProvider(
+                        LocalLayoutDirection provides (if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (brief.headline.isNotBlank()) {
+                                Text(
+                                    text = brief.headline,
+                                    style = TextStyle(
+                                        fontFamily = if (isRtl) bodyFont else PlayfairDisplay,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = if (isUrdu) 17.5.sp else if (isArabic) 16.sp else 15.5.sp,
+                                        lineHeight = if (isUrdu) 34.sp else if (isArabic) 27.sp else 21.sp,
+                                        color = DeepEmerald,
+                                        textAlign = TextAlign.Start,
+                                        platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                            brief.bullets.forEach { bullet ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .padding(top = if (isUrdu) 12.dp else 7.dp)
+                                            .size(6.dp)
+                                            .clip(CircleShape)
+                                            .background(MutedGold)
+                                    )
+                                    Text(
+                                        text = bullet,
+                                        style = TextStyle(
+                                            fontFamily = bodyFont,
+                                            fontSize = if (isUrdu) 15.5.sp else if (isArabic) 14.5.sp else 13.sp,
+                                            lineHeight = if (isUrdu) 32.sp else if (isArabic) 26.sp else 19.sp,
+                                            color = InkPrimary,
+                                            textAlign = TextAlign.Start,
+                                            platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                        ),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                            if (brief.securityFocusNote.isNotBlank()) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(PureWhite.copy(alpha = 0.8f))
+                                        .border(1.dp, GoldBorder, RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 10.dp, vertical = 7.dp)
+                                ) {
+                                    Text(
+                                        text = brief.securityFocusNote,
+                                        style = TextStyle(
+                                            fontFamily = bodyFont,
+                                            fontWeight = FontWeight.Medium,
+                                            fontSize = if (isUrdu) 14.5.sp else if (isArabic) 13.5.sp else 12.sp,
+                                            lineHeight = if (isUrdu) 29.sp else if (isArabic) 24.sp else 17.sp,
+                                            color = GoldTextDark,
+                                            textAlign = TextAlign.Start,
+                                            platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+

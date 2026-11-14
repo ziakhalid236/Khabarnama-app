@@ -907,12 +907,15 @@ private fun cityFlagEmoji(cityId: String): String {
 private fun publisherFlagEmoji(publisherName: String): String {
     return when (publisherName) {
         "Dawn", "The Express Tribune", "Geo News", "ARY News", "Pakistan Today", "Business Recorder" -> "🇵🇰"
+        "Palestine Chronicle", "Wafa Agency" -> "🇵🇸"
         "Arab News", "Saudi Gazette" -> "🇸🇦"
         "Al Jazeera" -> "🇶🇦"
-        "Anadolu Agency", "Daily Sabah" -> "🇹🇷"
-        "BBC News", "BBC Asia", "BBC Business", "BBC Sport", "Middle East Eye", "5Pillars", "Islam21c", "IlmFeed" -> "🇬🇧"
-        "TechCrunch", "The Verge", "Ars Technica", "CNBC World", "ESPNcricinfo", "MuslimMatters", "ProductiveMuslim" -> "🇺🇸"
-        "SeekersGuidance", "AboutIslam" -> "🕌"
+        "Anadolu Agency", "Daily Sabah", "TRT World" -> "🇹🇷"
+        "Bellingcat" -> "🇳🇱"
+        "The Cradle" -> "🇱🇧"
+        "BBC News", "BBC Asia", "BBC Business", "BBC Sport", "Middle East Eye", "Middle East Monitor", "5Pillars", "Islam21c", "IlmFeed", "The Muslim Vibe" -> "🇬🇧"
+        "War on the Rocks", "The War Zone", "Long War Journal", "Defense News", "The Intercept", "Drop Site News", "Mondoweiss", "Responsible Statecraft", "TechCrunch", "The Verge", "Ars Technica", "CNBC World", "ESPNcricinfo" -> "🇺🇸"
+        "SeekersGuidance", "AboutIslam", "Yaqeen Institute", "Traversing Tradition", "IslamiCity", "MuslimMatters", "ProductiveMuslim" -> "🕌"
         "UN News" -> "🇺🇳"
         else -> "🌐"
     }

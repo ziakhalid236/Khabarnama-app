@@ -99,6 +99,14 @@ data class LocalizedContent(
     val summary: String
 )
 
+data class ArticleBriefing(
+    val editorialHeadline: String,
+    val detailedSummary: String,
+    val keyTakeaways: List<String>,
+    val strategicContext: String,
+    val notableVoices: String
+)
+
 data class NewsArticle(
     val id: String,
     val translations: Map<AppLanguage, LocalizedContent>,
@@ -108,6 +116,8 @@ data class NewsArticle(
     val sourceName: String,
     val sourceUrl: String,
     val publishedAt: Long,
+    val fullBody: String = "",
+    val hasSocialQuote: Boolean = false,
     val isFeaturedIslamic: Boolean = false,
     val isIslamicSource: Boolean = false,
     val isScholarlySource: Boolean = false,

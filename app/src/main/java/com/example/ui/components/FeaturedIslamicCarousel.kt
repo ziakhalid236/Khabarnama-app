@@ -170,45 +170,55 @@ fun FeaturedIslamicCarousel(
             val isArabic = effectiveLanguage == AppLanguage.ARABIC
             val isRtlText = isUrdu || isArabic
 
-            // Single unified narrative description (eliminates duplicate headline + summary stack)
-            val unifiedStoryText = remember(rawTitle, articleSummary) {
-                val cleanTitle = rawTitle.trim()
-                val cleanSummary = articleSummary.trim()
+            val cleanHeadline = remember(rawTitle) { rawTitle.trim() }
+            val cleanLeadSummary = remember(rawTitle, articleSummary) {
+                val t = rawTitle.trim()
+                val s = articleSummary.trim()
                 when {
-                    cleanSummary.isBlank() -> cleanTitle
-                    cleanTitle.isBlank() -> cleanSummary
-                    cleanSummary.equals(cleanTitle, ignoreCase = true) -> cleanTitle
-                    cleanSummary.startsWith(cleanTitle, ignoreCase = true) -> cleanSummary
-                    cleanTitle.startsWith(cleanSummary, ignoreCase = true) -> cleanTitle
-                    cleanTitle.endsWith("۔") || cleanTitle.endsWith(".") || cleanTitle.endsWith("!") || cleanTitle.endsWith("؟") ->
-                        "$cleanTitle $cleanSummary"
-                    else ->
-                        "$cleanTitle — $cleanSummary"
+                    s.isBlank() || s.equals(t, ignoreCase = true) -> ""
+                    s.startsWith(t, ignoreCase = true) -> s.removePrefix(t).trimStart(' ', '-', '—', ':', '۔', '.')
+                    t.startsWith(s, ignoreCase = true) -> ""
+                    else -> s
                 }
             }
 
+            val headlineFontFamily = when {
+                isUrdu -> NotoNastaliqUrdu
+                isArabic -> NotoNaskhArabic
+                else -> PlayfairDisplay
+            }
             val storyFontFamily = when {
                 isUrdu -> NotoNastaliqUrdu
                 isArabic -> NotoNaskhArabic
                 else -> Inter
             }
 
-            val storyFontSize = when {
-                isUrdu -> 18.sp
-                isArabic -> 16.5.sp
-                else -> 15.sp
+            val headlineFontSize = when {
+                isUrdu -> 18.5.sp
+                isArabic -> 17.sp
+                else -> 16.5.sp
+            }
+            val headlineLineHeight = when {
+                isUrdu -> 37.sp
+                isArabic -> 29.sp
+                else -> 22.5.sp
             }
 
+            val storyFontSize = when {
+                isUrdu -> 15.5.sp
+                isArabic -> 14.5.sp
+                else -> 13.5.sp
+            }
             val storyLineHeight = when {
-                isUrdu -> 38.sp
-                isArabic -> 34.sp
-                else -> 24.sp
+                isUrdu -> 32.sp
+                isArabic -> 26.sp
+                else -> 19.5.sp
             }
 
             val storyLetterSpacing = when {
-                isUrdu -> 0.35.sp
-                isArabic -> 0.2.sp
-                else -> 0.1.sp
+                isUrdu -> 0.3.sp
+                isArabic -> 0.15.sp
+                else -> 0.05.sp
             }
 
             Card(
@@ -308,6 +318,26 @@ fun FeaturedIslamicCarousel(
                                     sourceName = article.sourceName,
                                     category = article.category
                                 )
+                            }
+
+                            if (article.isScholarlySource) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .padding(10.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(Color(0xFF111111).copy(alpha = 0.85f))
+                                        .border(0.5.dp, MutedGold, RoundedCornerShape(10.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "Scholarly",
+                                        fontFamily = Inter,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 10.sp,
+                                        color = Color(0xFFF3DFA2)
+                                    )
+                                }
                             }
 
                             // Dark 55% translucent pill for image source
@@ -430,21 +460,40 @@ fun FeaturedIslamicCarousel(
                                     horizontalAlignment = Alignment.Start
                                 ) {
                                     Text(
-                                        text = unifiedStoryText,
+                                        text = cleanHeadline,
                                         style = TextStyle(
-                                            fontFamily = storyFontFamily,
-                                            fontWeight = if (isUrdu) FontWeight.Normal else FontWeight.Medium,
-                                            fontSize = storyFontSize,
-                                            lineHeight = storyLineHeight,
+                                            fontFamily = headlineFontFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = headlineFontSize,
+                                            lineHeight = headlineLineHeight,
                                             letterSpacing = storyLetterSpacing,
                                             color = InkPrimary,
                                             textAlign = TextAlign.Start,
                                             platformStyle = PlatformTextStyle(includeFontPadding = true)
                                         ),
-                                        maxLines = 4,
+                                        maxLines = 2,
                                         overflow = TextOverflow.Ellipsis,
                                         modifier = Modifier.fillMaxWidth()
                                     )
+                                    if (cleanLeadSummary.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(if (isUrdu) 3.dp else 5.dp))
+                                        Text(
+                                            text = cleanLeadSummary,
+                                            style = TextStyle(
+                                                fontFamily = storyFontFamily,
+                                                fontWeight = FontWeight.Normal,
+                                                fontSize = storyFontSize,
+                                                lineHeight = storyLineHeight,
+                                                letterSpacing = storyLetterSpacing,
+                                                color = InkPrimary.copy(alpha = 0.82f),
+                                                textAlign = TextAlign.Start,
+                                                platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                            ),
+                                            maxLines = 2,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
                                 }
                             }
                         }

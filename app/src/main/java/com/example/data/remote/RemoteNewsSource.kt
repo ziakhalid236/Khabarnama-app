@@ -29,6 +29,8 @@ import java.util.concurrent.TimeUnit
 
 interface RemoteNewsSource {
     suspend fun fetchLatestArticles(): List<ArticleEntity>
+    suspend fun fetchFastPriorityArticles(): List<ArticleEntity> = fetchLatestArticles()
+    suspend fun fetchRemainingArticles(alreadyFetchedUrls: Set<String> = emptySet()): List<ArticleEntity> = emptyList()
     fun loadWhitelistedSources(): List<NewsSourceConfig>
 }
 
@@ -52,11 +54,29 @@ class RssRemoteNewsSource(
         }
     }
 
+    override suspend fun fetchFastPriorityArticles(): List<ArticleEntity> = withContext(Dispatchers.IO) {
+        val sources = loadWhitelistedSources()
+        if (sources.isEmpty()) return@withContext emptyList()
+        val fastSources = selectPriorityFastSources(sources)
+        fetchSourcesBatch(fastSources)
+    }
+
+    override suspend fun fetchRemainingArticles(alreadyFetchedUrls: Set<String>): List<ArticleEntity> = withContext(Dispatchers.IO) {
+        val sources = loadWhitelistedSources()
+        val fastUrls = selectPriorityFastSources(sources).map { it.feedUrl }.toSet()
+        val remaining = sources.filter { it.feedUrl !in fastUrls && it.feedUrl !in alreadyFetchedUrls }
+        if (remaining.isEmpty()) return@withContext emptyList()
+        fetchSourcesBatch(remaining)
+    }
+
     override suspend fun fetchLatestArticles(): List<ArticleEntity> = withContext(Dispatchers.IO) {
         val sources = loadWhitelistedSources()
         if (sources.isEmpty()) return@withContext emptyList()
+        fetchSourcesBatch(sources)
+    }
 
-        val feedSemaphore = Semaphore(16)
+    private suspend fun fetchSourcesBatch(sources: List<NewsSourceConfig>): List<ArticleEntity> {
+        val feedSemaphore = Semaphore(18)
         val allFetched = coroutineScope {
             sources.map { source ->
                 async {
@@ -66,8 +86,17 @@ class RssRemoteNewsSource(
                 }
             }.awaitAll().flatten()
         }
+        return deduplicateArticles(allFetched)
+    }
 
-        deduplicateArticles(allFetched)
+    private fun selectPriorityFastSources(allSources: List<NewsSourceConfig>): List<NewsSourceConfig> {
+        val picked = mutableListOf<NewsSourceConfig>()
+        picked.addAll(allSources.filter { it.category == NewsCategory.SECURITY }.take(3))
+        picked.addAll(allSources.filter { it.category == NewsCategory.PALESTINE }.take(2))
+        picked.addAll(allSources.filter { it.category == NewsCategory.ISLAMIC }.take(2))
+        picked.addAll(allSources.filter { it.category == NewsCategory.PAKISTAN }.take(2))
+        picked.addAll(allSources.filter { it.category == NewsCategory.WORLD }.take(3))
+        return picked.distinctBy { it.feedUrl }
     }
 
     internal fun shouldSkipFeed(feedUrl: String, nowMs: Long = currentTimeProvider()): Boolean {
@@ -131,8 +160,10 @@ class RssRemoteNewsSource(
             return emptyList()
         }
 
+        val fiveDaysAgoMs = now - FIVE_DAYS_MS
+        val freshItems = rawItems.filter { it.publishedAt >= fiveDaysAgoMs }
         recordFeedOutcome(source.feedUrl, succeeded = true, nowMs = now)
-        return rawItems
+        return freshItems
     }
 
     internal fun fetchOgImage(articleUrl: String): String? {
@@ -164,6 +195,7 @@ class RssRemoteNewsSource(
         const val MAX_OG_IMAGE_FETCHES_PER_FEED = 5
         const val MAX_OG_HTML_BYTES = 128 * 1024 // 128 KB
         const val MAX_RSS_XML_CHARS = 1_500_000 // 1.5 MB cap to prevent OOM on giant feeds
+        const val FIVE_DAYS_MS = 5L * 24L * 3600L * 1000L
 
         private val SHARED_HTTP_CLIENT: OkHttpClient by lazy {
             OkHttpClient.Builder()
@@ -430,6 +462,8 @@ class RssRemoteNewsSource(
 
             val rawBody = if (rawDescription.isNotBlank()) rawDescription else rawContentEncoded
             val cleanedSummary = formatConciseSummary(rawBody, cleanTitle, maxWords = 60)
+            val richSourceBody = if (rawContentEncoded.length > rawDescription.length) rawContentEncoded else rawBody
+            val fullBody = formatConciseSummary(richSourceBody, cleanTitle, maxWords = 350)
 
             val publishedAt = parsePubDateMillis(rawPubDate)
             val (category, islamicSection) = classifyArticle(
@@ -437,6 +471,15 @@ class RssRemoteNewsSource(
                 summary = cleanedSummary,
                 itemCategories = itemCategories,
                 source = source
+            )
+
+            val hasSocialQuote = matchesAnyWordOrPhrase(
+                "$cleanTitle $fullBody",
+                listOf(
+                    "on x", "posted on x", "wrote on x", "tweeted", "x.com", "twitter",
+                    "in a statement", "official statement", "press briefing", "journalist",
+                    "correspondent", "analyst", "osint", "fatwa", "scholars", "said in a post"
+                )
             )
 
             val normalizedUrl = normalizeUrl(cleanLink)
@@ -456,7 +499,9 @@ class RssRemoteNewsSource(
                 sourceUrl = cleanLink,
                 publishedAt = publishedAt,
                 isIslamicSource = source.isIslamicSource,
-                isScholarlySource = source.isScholarlySource
+                isScholarlySource = source.isScholarlySource,
+                fullBody = fullBody,
+                hasSocialQuote = hasSocialQuote
             )
         }
 
@@ -533,10 +578,13 @@ class RssRemoteNewsSource(
                 combined,
                 listOf(
                     "security forces", "counter-terrorism", "border security", "military operation",
-                    "cyberattack", "cyber attack", "missile strike", "air strike", "defense minister",
-                    "armed forces", "intelligence agency", "ceasefire violation", "drone attack",
-                    "hostage", "emergency declared", "troops deployed", "artillery fire", "border clash",
-                    "cross-border", "security alert", "militant ambush"
+                    "cyberattack", "cyber attack", "cyber warfare", "missile strike", "air strike",
+                    "defense minister", "defense ministry", "armed forces", "intelligence agency",
+                    "military intelligence", "osint", "espionage", "ceasefire violation", "ceasefire talks",
+                    "drone attack", "hostage", "emergency declared", "troops deployed", "artillery fire",
+                    "border clash", "cross-border", "security alert", "militant ambush",
+                    "national security", "armed conflict", "frontline", "airspace violation",
+                    "nuclear tension", "naval blockade", "defense pact"
                 )
             )
 

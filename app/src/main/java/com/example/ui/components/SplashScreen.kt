@@ -44,9 +44,9 @@ fun SplashScreen(
     LaunchedEffect(Unit) {
         progress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 1100, easing = FastOutSlowInEasing)
+            animationSpec = tween(durationMillis = 650, easing = FastOutSlowInEasing)
         )
-        delay(150)
+        delay(100)
         onFinish()
     }
 
@@ -96,7 +96,7 @@ fun SplashScreen(
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                text = "Verified World, Pakistan & Islamic Dispatches",
+                text = "Live World, Security, Palestine & Islamic Dispatches",
                 fontFamily = Inter,
                 fontWeight = FontWeight.Medium,
                 fontSize = 11.sp,

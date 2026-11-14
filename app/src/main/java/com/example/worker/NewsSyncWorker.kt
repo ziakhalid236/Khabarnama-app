@@ -27,7 +27,8 @@ class NewsSyncWorker(
         val remoteSource = RssRemoteNewsSource(applicationContext)
         val repository = DefaultNewsRepository(
             remoteSource = remoteSource,
-            articleDao = db.articleDao()
+            articleDao = db.articleDao(),
+            context = applicationContext
         )
 
         val status = repository.syncFromRemote()
@@ -36,14 +37,10 @@ class NewsSyncWorker(
                 val prefs = applicationContext.getSharedPreferences("khabarnama_prefs", Context.MODE_PRIVATE)
                 val langCode = prefs.getString("selected_news_language", AppLanguage.ENGLISH.code) ?: AppLanguage.ENGLISH.code
                 val currentLang = AppLanguage.fromCode(langCode)
-                val latestPage = repository.getArticlesPage(
-                    category = NewsCategory.ALL,
-                    language = currentLang,
-                    pageSize = 6
-                )
+                val alertPool = repository.getRecentAlertArticles(limit = 15)
                 NewsNotificationHelper.notifyLatestBreakingNewsIfNew(
                     context = applicationContext,
-                    articles = latestPage.articles,
+                    articles = alertPool,
                     language = currentLang
                 )
             }

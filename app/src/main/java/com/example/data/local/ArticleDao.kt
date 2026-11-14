@@ -16,13 +16,35 @@ interface ArticleDao {
         LIMIT :limit
         """
     )
-    suspend fun getLatestIslamicArticles(limit: Int = 4): List<ArticleEntity>
+    suspend fun getLatestIslamicArticles(limit: Int = 6): List<ArticleEntity>
+
+    @Query(
+        """
+        SELECT * FROM cached_articles
+        WHERE id = :articleId
+        LIMIT 1
+        """
+    )
+    suspend fun getArticleById(articleId: String): ArticleEntity?
 
     @Query(
         """
         SELECT * FROM cached_articles
         WHERE publishedAt >= :minPublishedAt
-        ORDER BY publishedAt DESC, id ASC
+        ORDER BY (
+            publishedAt +
+            CASE category
+                WHEN 'SECURITY' THEN 14400000
+                WHEN 'PALESTINE' THEN 14400000
+                WHEN 'ISLAMIC' THEN 10800000
+                WHEN 'WORLD' THEN 7200000
+                WHEN 'PAKISTAN' THEN 7200000
+                WHEN 'TECHNOLOGY' THEN -14400000
+                WHEN 'BUSINESS' THEN -64800000
+                WHEN 'SPORTS' THEN -86400000
+                ELSE 0
+            END
+        ) DESC, id ASC
         LIMIT :limit
         """
     )
@@ -48,12 +70,63 @@ interface ArticleDao {
             :searchQuery = ''
             OR LOWER(cached_articles.title) LIKE '%' || LOWER(:searchQuery) || '%'
             OR LOWER(cached_articles.summary) LIKE '%' || LOWER(:searchQuery) || '%'
+            OR LOWER(cached_articles.fullBody) LIKE '%' || LOWER(:searchQuery) || '%'
             OR LOWER(cached_articles.sourceName) LIKE '%' || LOWER(:searchQuery) || '%'
             OR (t.translatedTitle IS NOT NULL AND LOWER(t.translatedTitle) LIKE '%' || LOWER(:searchQuery) || '%')
             OR (t.translatedSummary IS NOT NULL AND LOWER(t.translatedSummary) LIKE '%' || LOWER(:searchQuery) || '%')
           )
-          AND (cached_articles.publishedAt < :beforePublishedAt OR (cached_articles.publishedAt = :beforePublishedAt AND cached_articles.id > :afterId))
-        ORDER BY cached_articles.publishedAt DESC, cached_articles.id ASC
+          AND (
+            (
+              cached_articles.publishedAt +
+              CASE WHEN :category IS NOT NULL THEN 0 ELSE
+                CASE cached_articles.category
+                  WHEN 'SECURITY' THEN 14400000
+                  WHEN 'PALESTINE' THEN 14400000
+                  WHEN 'ISLAMIC' THEN 10800000
+                  WHEN 'WORLD' THEN 7200000
+                  WHEN 'PAKISTAN' THEN 7200000
+                  WHEN 'TECHNOLOGY' THEN -14400000
+                  WHEN 'BUSINESS' THEN -64800000
+                  WHEN 'SPORTS' THEN -86400000
+                  ELSE 0
+                END
+              END
+            ) < :beforePublishedAt
+            OR (
+              (
+                cached_articles.publishedAt +
+                CASE WHEN :category IS NOT NULL THEN 0 ELSE
+                  CASE cached_articles.category
+                    WHEN 'SECURITY' THEN 14400000
+                    WHEN 'PALESTINE' THEN 14400000
+                    WHEN 'ISLAMIC' THEN 10800000
+                    WHEN 'WORLD' THEN 7200000
+                    WHEN 'PAKISTAN' THEN 7200000
+                    WHEN 'TECHNOLOGY' THEN -14400000
+                    WHEN 'BUSINESS' THEN -64800000
+                    WHEN 'SPORTS' THEN -86400000
+                    ELSE 0
+                  END
+                END
+              ) = :beforePublishedAt AND cached_articles.id > :afterId
+            )
+          )
+        ORDER BY (
+            cached_articles.publishedAt +
+            CASE WHEN :category IS NOT NULL THEN 0 ELSE
+              CASE cached_articles.category
+                WHEN 'SECURITY' THEN 14400000
+                WHEN 'PALESTINE' THEN 14400000
+                WHEN 'ISLAMIC' THEN 10800000
+                WHEN 'WORLD' THEN 7200000
+                WHEN 'PAKISTAN' THEN 7200000
+                WHEN 'TECHNOLOGY' THEN -14400000
+                WHEN 'BUSINESS' THEN -64800000
+                WHEN 'SPORTS' THEN -86400000
+                ELSE 0
+              END
+            END
+        ) DESC, cached_articles.id ASC
         LIMIT :limit
         """
     )
@@ -78,6 +151,7 @@ interface ArticleDao {
             :searchQuery = ''
             OR LOWER(cached_articles.title) LIKE '%' || LOWER(:searchQuery) || '%'
             OR LOWER(cached_articles.summary) LIKE '%' || LOWER(:searchQuery) || '%'
+            OR LOWER(cached_articles.fullBody) LIKE '%' || LOWER(:searchQuery) || '%'
             OR LOWER(cached_articles.sourceName) LIKE '%' || LOWER(:searchQuery) || '%'
             OR (t.translatedTitle IS NOT NULL AND LOWER(t.translatedTitle) LIKE '%' || LOWER(:searchQuery) || '%')
             OR (t.translatedSummary IS NOT NULL AND LOWER(t.translatedSummary) LIKE '%' || LOWER(:searchQuery) || '%')
@@ -115,6 +189,9 @@ interface ArticleDao {
     @Query("DELETE FROM article_translations WHERE articleId NOT IN (SELECT id FROM cached_articles)")
     suspend fun deleteOrphanTranslations()
 
+    @Query("DELETE FROM article_briefings WHERE articleId NOT IN (SELECT id FROM cached_articles)")
+    suspend fun deleteOrphanBriefings()
+
     @Query("DELETE FROM cached_articles")
     suspend fun clearAllArticles()
 
@@ -129,4 +206,10 @@ interface ArticleDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTranslations(translations: List<ArticleTranslationEntity>)
+
+    @Query("SELECT * FROM article_briefings WHERE articleId = :articleId AND languageCode = :languageCode LIMIT 1")
+    suspend fun getBriefing(articleId: String, languageCode: String): ArticleBriefingEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertBriefing(briefing: ArticleBriefingEntity)
 }

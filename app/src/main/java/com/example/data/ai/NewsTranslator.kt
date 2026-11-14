@@ -21,6 +21,7 @@ import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
 interface NewsTranslator {
@@ -36,11 +37,12 @@ class GeminiNewsTranslator(
 ) : NewsTranslator {
 
     private val firebaseCooldownUntilMs = AtomicLong(0L)
+    private val consecutiveGeminiFailures = AtomicInteger(0)
 
     private val translationSchema = Schema.obj(
         mapOf(
-            "title" to Schema.string("The faithfully translated news headline in the target language, without adding any facts."),
-            "summary" to Schema.string("The faithfully translated concise news summary (maximum 60 words) in the target language, without adding any facts.")
+            "title" to Schema.string("Idiomatic, publication-grade news headline in the target language using native journalistic phrasing."),
+            "summary" to Schema.string("Rich, fluent, publication-grade news summary (up to 110 words) faithfully preserving every fact, attribution, quote, or statement without inventing any outside facts.")
         )
     )
 
@@ -50,14 +52,18 @@ class GeminiNewsTranslator(
             generationConfig = generationConfig {
                 responseMimeType = "application/json"
                 responseSchema = translationSchema
-                temperature = 0.1f
+                temperature = 0.15f
             },
             systemInstruction = content {
                 text(
-                    "You are an accurate news translator for an international news app. " +
-                        "Translate and concisely summarize ONLY the given headline and summary into the requested language. " +
-                        "NEVER invent, extrapolate, or add any facts, names, numbers, or context not present in the source text. " +
-                        "Keep the summary under 60 words."
+                    "You are a senior international news desk editor and translator. " +
+                        "Translate ONLY the provided headline and story summary accurately and eloquently into the requested language. " +
+                        "NEVER invent facts, names, dates, or quotes not present in the source text.\n" +
+                        "Language quality rules:\n" +
+                        "- For URDU (اردو): Write in fluent, authoritative Pakistani & international journalistic Urdu (شستہ، بامحاورہ صحافتی اردو، BBC Urdu / Dawn Urdu معیار). Use natural Urdu sentence structure, accurate transliteration of proper nouns, proper Urdu punctuation (۔ ، ؟), and idiomatic expressions instead of literal word-for-word translation.\n" +
+                        "- For ARABIC (العربية): Write in eloquent, crisp Modern Standard Journalistic Arabic (العربية الفصحى الإعلامية الرصينة بأسلوب كبرى الوكالات الإخبارية), with natural collocations and clean Arabic punctuation (، ؛ ؟).\n" +
+                        "- For TURKISH (Türkçe) and HINDI (हिन्दी): Write in natural broadcast-grade journalistic prose.\n" +
+                        "Keep summaries thorough yet concise (up to 110 words), preserving speaker attributions, official statements, X/social quotes, and scholarly citations."
                 )
             }
         )
@@ -76,14 +82,15 @@ class GeminiNewsTranslator(
         if (now >= firebaseCooldownUntilMs.get()) {
             val geminiResult = tryTranslateWithGemini(title, summary, targetLanguage)
             if (geminiResult != null) {
+                consecutiveGeminiFailures.set(0)
                 return@withContext geminiResult
             }
-            // Put Firebase AI on a short 5-minute cooldown if it failed (e.g., App Check or quota)
-            // so remaining visible cards translate instantaneously via the cloud fallback
-            firebaseCooldownUntilMs.set(now + FIREBASE_COOLDOWN_MS)
+            if (consecutiveGeminiFailures.incrementAndGet() >= 2) {
+                firebaseCooldownUntilMs.set(now + FIREBASE_COOLDOWN_MS)
+            }
         }
 
-        // Fast, reliable HTTPS translation fallback (works without API keys on any device/APK)
+        // Emergency cloud endpoint fallback if Firebase AI is temporarily unreachable
         tryTranslateViaCloudEndpoint(title, summary, targetLanguage)
     }
 
@@ -92,35 +99,36 @@ class GeminiNewsTranslator(
         summary: String,
         targetLanguage: AppLanguage
     ): LocalizedContent? {
-        val targetLangName = when (targetLanguage) {
-            AppLanguage.URDU -> "Urdu (اردو script)"
-            AppLanguage.ARABIC -> "Arabic (العربية script)"
-            AppLanguage.TURKISH -> "Turkish (Türkçe)"
-            AppLanguage.HINDI -> "Hindi (हिन्दी Devanagari script)"
+        val targetGuidance = when (targetLanguage) {
+            AppLanguage.URDU -> "Urdu (اردو script — شستہ، بامحاورہ صحافتی اردو معیار، درست املاء اور اردو علاماتِ اوقاف ۔ ، کے ساتھ)"
+            AppLanguage.ARABIC -> "Arabic (العربية الفصحى الإعلامية الرصينة والواضحة بأسلوب الصحافة الاحترافية)"
+            AppLanguage.TURKISH -> "Turkish (Türkçe — akıcı gazetecilik üslubu)"
+            AppLanguage.HINDI -> "Hindi (हिन्दी — स्पष्ट और मानक पत्रकारिता शैली)"
             AppLanguage.ENGLISH -> "English"
         }
 
         val prompt = buildString {
-            appendLine("Translate the following news headline and summary strictly into $targetLangName.")
-            appendLine("Rules:")
-            appendLine("1. Translate ONLY the provided text. Do NOT add any outside facts or assumptions.")
-            appendLine("2. Keep the summary concise (maximum 60 words).")
-            appendLine("3. Return JSON with keys \"title\" and \"summary\".")
+            appendLine("Translate the following news report into $targetGuidance.")
+            appendLine("Strict requirements:")
+            appendLine("1. Translate ONLY the facts present below; do NOT add external claims.")
+            appendLine("2. Use authentic journalistic syntax and natural idioms of $targetGuidance — never literal robot phrasing.")
+            appendLine("3. Preserve all quoted statements, social/X remarks, analyst titles, or scholarly attributions faithfully.")
+            appendLine("4. Return JSON with keys \"title\" and \"summary\" (up to 110 words).")
             appendLine()
             appendLine("Headline: $title")
-            appendLine("Summary: $summary")
+            appendLine("Report: $summary")
         }
 
         return try {
-            val response = withTimeout(18_000L) {
+            val response = withTimeout(40_000L) {
                 generativeModel.generateContent(prompt)
             }
             val rawJson = response.text?.trim().orEmpty()
             if (rawJson.isBlank()) return null
 
             val jsonObj = JSONObject(rawJson)
-            val translatedTitle = jsonObj.optString("title").trim()
-            val translatedSummary = jsonObj.optString("summary").trim()
+            val translatedTitle = postProcessLanguageText(jsonObj.optString("title").trim(), targetLanguage)
+            val translatedSummary = postProcessLanguageText(jsonObj.optString("summary").trim(), targetLanguage)
 
             if (translatedTitle.isBlank() || translatedSummary.isBlank()) {
                 null
@@ -133,7 +141,7 @@ class GeminiNewsTranslator(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            Log.w(TAG, "Gemini AI translation unavailable, switching to instant cloud fallback: ${e.message}")
+            Log.e(TAG, "Firebase AI translation failed for ${targetLanguage.code}: ${e.message}", e)
             null
         }
     }
@@ -161,10 +169,12 @@ class GeminiNewsTranslator(
                 }
             }
 
-            val translatedTitle = titleDeferred.await()?.trim().orEmpty()
+            val translatedTitle = postProcessLanguageText(titleDeferred.await()?.trim().orEmpty(), targetLanguage)
             if (translatedTitle.isBlank()) return@coroutineScope null
 
-            val translatedSummary = summaryDeferred.await()?.trim()?.takeIf { it.isNotBlank() }
+            val translatedSummary = summaryDeferred.await()?.trim()
+                ?.takeIf { it.isNotBlank() }
+                ?.let { postProcessLanguageText(it, targetLanguage) }
                 ?: translatedTitle
 
             LocalizedContent(
@@ -206,7 +216,7 @@ class GeminiNewsTranslator(
     companion object {
         private const val TAG = "NewsTranslator"
         private const val CLOUD_TRANSLATE_BASE_URL = "https://translate.googleapis.com/translate_a/single"
-        private const val FIREBASE_COOLDOWN_MS = 5L * 60L * 1000L // 5 minutes
+        private const val FIREBASE_COOLDOWN_MS = 60L * 1000L // 60 seconds retry window
 
         private val SHARED_TRANSLATION_CLIENT: OkHttpClient by lazy {
             OkHttpClient.Builder()
@@ -219,6 +229,26 @@ class GeminiNewsTranslator(
         }
 
         fun defaultTranslationHttpClient(): OkHttpClient = SHARED_TRANSLATION_CLIENT
+
+        fun postProcessLanguageText(text: String, lang: AppLanguage): String {
+            if (text.isBlank()) return text
+            return when (lang) {
+                AppLanguage.URDU -> text
+                    .replace(" ,", "،")
+                    .replace(", ", "، ")
+                    .replace("?", "؟")
+                    .replace(Regex("\\s+"), " ")
+                    .trim()
+                AppLanguage.ARABIC -> text
+                    .replace(" ,", "،")
+                    .replace(", ", "، ")
+                    .replace("?", "؟")
+                    .replace(";", "؛")
+                    .replace(Regex("\\s+"), " ")
+                    .trim()
+                else -> text.replace(Regex("\\s+"), " ").trim()
+            }
+        }
 
         fun parseCloudTranslationJson(jsonBody: String): String? {
             if (jsonBody.isBlank()) return null

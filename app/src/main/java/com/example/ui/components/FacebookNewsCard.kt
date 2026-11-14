@@ -25,8 +25,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Share
@@ -118,45 +120,64 @@ fun FacebookNewsCard(
     val isRtlText = isUrdu || isArabic
     val isIslamic = article.category == NewsCategory.ISLAMIC
 
-    // Single unified narrative description (eliminates duplicate headline + summary stack)
-    val unifiedStoryText = remember(articleTitle, articleSummary) {
-        val cleanTitle = articleTitle.trim()
-        val cleanSummary = articleSummary.trim()
+    val isBreakingLive = remember(article.publishedAt, article.category) {
+        article.category != NewsCategory.SPORTS &&
+            article.category != NewsCategory.BUSINESS &&
+            article.publishedAt >= System.currentTimeMillis() - 2L * 3600_000L
+    }
+
+    val cleanHeadline = remember(articleTitle) { articleTitle.trim() }
+    val cleanLeadSummary = remember(articleTitle, articleSummary) {
+        val t = articleTitle.trim()
+        val s = articleSummary.trim()
         when {
-            cleanSummary.isBlank() -> cleanTitle
-            cleanTitle.isBlank() -> cleanSummary
-            cleanSummary.equals(cleanTitle, ignoreCase = true) -> cleanTitle
-            cleanSummary.startsWith(cleanTitle, ignoreCase = true) -> cleanSummary
-            cleanTitle.startsWith(cleanSummary, ignoreCase = true) -> cleanTitle
-            cleanTitle.endsWith("۔") || cleanTitle.endsWith(".") || cleanTitle.endsWith("!") || cleanTitle.endsWith("؟") ->
-                "$cleanTitle $cleanSummary"
-            else ->
-                "$cleanTitle — $cleanSummary"
+            s.isBlank() || s.equals(t, ignoreCase = true) -> ""
+            s.startsWith(t, ignoreCase = true) -> s.removePrefix(t).trimStart(' ', '-', '—', ':', '۔', '.')
+            t.startsWith(s, ignoreCase = true) -> ""
+            else -> s
         }
     }
 
-    val storyFontFamily = when {
+    val headlineFontFamily = when {
+        isUrdu -> NotoNastaliqUrdu
+        isArabic -> NotoNaskhArabic
+        else -> PlayfairDisplay
+    }
+
+    val summaryFontFamily = when {
         isUrdu -> NotoNastaliqUrdu
         isArabic -> NotoNaskhArabic
         else -> Inter
     }
 
-    val storyFontSize = when {
-        isUrdu -> 18.5.sp
-        isArabic -> 17.sp
-        else -> 15.sp
+    val headlineFontSize = when {
+        isUrdu -> 19.5.sp
+        isArabic -> 18.sp
+        else -> 17.5.sp
     }
 
-    val storyLineHeight = when {
+    val headlineLineHeight = when {
         isUrdu -> 39.sp
-        isArabic -> 34.sp
+        isArabic -> 31.sp
         else -> 24.sp
     }
 
+    val summaryFontSize = when {
+        isUrdu -> 16.sp
+        isArabic -> 15.sp
+        else -> 14.sp
+    }
+
+    val summaryLineHeight = when {
+        isUrdu -> 34.sp
+        isArabic -> 28.sp
+        else -> 21.sp
+    }
+
     val storyLetterSpacing = when {
-        isUrdu -> 0.35.sp
-        isArabic -> 0.2.sp
-        else -> 0.1.sp
+        isUrdu -> 0.3.sp
+        isArabic -> 0.15.sp
+        else -> 0.05.sp
     }
 
     val cardBorderColor = if (isIslamic) GoldBorder else WarmBorder
@@ -292,6 +313,83 @@ fun FacebookNewsCard(
                                 )
                             )
                     )
+
+                    // Top-left editorial context pills (LIVE breaking, Social/X Quotes, Scholarly)
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        if (isBreakingLive) {
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFFC62828))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White)
+                                )
+                                Text(
+                                    text = "LIVE",
+                                    fontFamily = Inter,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 10.sp,
+                                    color = Color.White,
+                                    letterSpacing = 0.6.sp
+                                )
+                            }
+                        }
+                        if (article.hasSocialQuote) {
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(TranslucentDarkPill)
+                                    .border(0.5.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FormatQuote,
+                                    contentDescription = "Direct statement or X dispatch",
+                                    tint = Color(0xFFF3DFA2),
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Text(
+                                    text = "Voices & X",
+                                    fontFamily = Inter,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 10.sp,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                        if (article.isScholarlySource) {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFF111111).copy(alpha = 0.85f))
+                                    .border(0.5.dp, MutedGold, RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "Scholarly",
+                                    fontFamily = Inter,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 10.sp,
+                                    color = Color(0xFFF3DFA2)
+                                )
+                            }
+                        }
+                    }
 
                     // Real translucent pill source badge on the image (dark 55% with white text)
                     Box(
@@ -456,20 +554,68 @@ fun FacebookNewsCard(
                             horizontalAlignment = Alignment.Start
                         ) {
                             Text(
-                                text = unifiedStoryText,
+                                text = cleanHeadline,
                                 style = TextStyle(
-                                    fontFamily = storyFontFamily,
-                                    fontWeight = if (isUrdu) FontWeight.Normal else FontWeight.Medium,
-                                    fontSize = storyFontSize,
-                                    lineHeight = storyLineHeight,
+                                    fontFamily = headlineFontFamily,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = headlineFontSize,
+                                    lineHeight = headlineLineHeight,
                                     letterSpacing = storyLetterSpacing,
                                     color = InkPrimary,
                                     textAlign = TextAlign.Start,
                                     platformStyle = PlatformTextStyle(includeFontPadding = true)
                                 ),
-                                maxLines = 6,
+                                maxLines = 3,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.fillMaxWidth()
+                            )
+
+                            if (cleanLeadSummary.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(if (isUrdu) 4.dp else 6.dp))
+                                Text(
+                                    text = cleanLeadSummary,
+                                    style = TextStyle(
+                                        fontFamily = summaryFontFamily,
+                                        fontWeight = FontWeight.Normal,
+                                        fontSize = summaryFontSize,
+                                        lineHeight = summaryLineHeight,
+                                        letterSpacing = storyLetterSpacing,
+                                        color = InkPrimary.copy(alpha = 0.82f),
+                                        textAlign = TextAlign.Start,
+                                        platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                    ),
+                                    maxLines = 3,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    // Subtle full-briefing callout pill
+                    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(EmeraldTint.copy(alpha = 0.65f))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = DeepEmerald,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = "Tap for full report & AI intelligence brief",
+                                fontFamily = Inter,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 11.sp,
+                                color = DeepEmerald
                             )
                         }
                     }

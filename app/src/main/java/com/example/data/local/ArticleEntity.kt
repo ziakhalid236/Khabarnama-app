@@ -33,6 +33,8 @@ data class ArticleEntity(
     val publishedAt: Long,
     val isIslamicSource: Boolean,
     val isScholarlySource: Boolean = false,
+    val fullBody: String = "",
+    val hasSocialQuote: Boolean = false,
     val fetchedAt: Long = System.currentTimeMillis()
 ) {
     fun toNewsArticle(
@@ -46,8 +48,9 @@ data class ArticleEntity(
         )
         mergedTranslations.putAll(translationsMap)
 
-        val wordCount = summary.split(Regex("\\s+")).count { it.isNotBlank() }
-        val estimatedMinutes = ((wordCount / 40) + 1).coerceIn(1, 5)
+        val bodyText = fullBody.ifBlank { summary }
+        val wordCount = bodyText.split(Regex("\\s+")).count { it.isNotBlank() }
+        val estimatedMinutes = ((wordCount / 55) + 1).coerceIn(1, 6)
 
         return NewsArticle(
             id = id,
@@ -58,6 +61,8 @@ data class ArticleEntity(
             sourceName = sourceName,
             sourceUrl = sourceUrl,
             publishedAt = publishedAt,
+            fullBody = fullBody,
+            hasSocialQuote = hasSocialQuote,
             isFeaturedIslamic = isFeaturedIslamic,
             isIslamicSource = isIslamicSource,
             isScholarlySource = isScholarlySource,

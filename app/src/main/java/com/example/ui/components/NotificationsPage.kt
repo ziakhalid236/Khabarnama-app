@@ -98,6 +98,7 @@ import com.example.ui.theme.WarmBorder
 import com.example.ui.theme.WarmDivider
 import com.example.ui.theme.WarmOffWhite
 import com.example.util.BrowserUtil
+import com.example.util.NotificationFocus
 import com.example.util.PrayerTimesUtil
 import kotlinx.coroutines.Dispatchers
 
@@ -115,6 +116,7 @@ fun NotificationsPage(
     savedArticleIds: Set<String> = emptySet(),
     currentLanguage: AppLanguage,
     notificationsEnabled: Boolean,
+    notificationFocus: NotificationFocus = NotificationFocus.ALL_PRIORITY,
     readNotificationIds: Set<String>,
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
@@ -124,6 +126,7 @@ fun NotificationsPage(
     onToggleBookmark: (NewsArticle) -> Unit = {},
     onNotificationArticleClick: (NewsArticle) -> Unit,
     onToggleNotifications: (Boolean) -> Unit,
+    onSelectNotificationFocus: (NotificationFocus) -> Unit = {},
     onBackToHome: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -488,7 +491,9 @@ fun NotificationsPage(
                     item(key = "push_alerts_control_card") {
                         PushAlertControlBanner(
                             notificationsEnabled = notificationsEnabled,
-                            onToggleNotifications = onToggleNotifications
+                            notificationFocus = notificationFocus,
+                            onToggleNotifications = onToggleNotifications,
+                            onSelectFocus = onSelectNotificationFocus
                         )
                     }
 
@@ -671,7 +676,9 @@ private fun NotificationSectionHeader(
 @Composable
 private fun PushAlertControlBanner(
     notificationsEnabled: Boolean,
-    onToggleNotifications: (Boolean) -> Unit
+    notificationFocus: NotificationFocus,
+    onToggleNotifications: (Boolean) -> Unit,
+    onSelectFocus: (NotificationFocus) -> Unit
 ) {
     Surface(
         color = PureWhite,
@@ -680,7 +687,7 @@ private fun PushAlertControlBanner(
             .fillMaxWidth()
             .border(1.dp, if (notificationsEnabled) DeepEmerald.copy(alpha = 0.35f) else WarmBorder, RoundedCornerShape(18.dp))
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
@@ -692,46 +699,86 @@ private fun PushAlertControlBanner(
                     )
                 )
                 .padding(14.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = if (notificationsEnabled) Icons.Filled.NotificationsActive else Icons.Filled.NotificationsOff,
-                    contentDescription = null,
-                    tint = if (notificationsEnabled) DeepEmerald else SoftGrey,
-                    modifier = Modifier.size(22.dp)
-                )
-                Column {
-                    Text(
-                        text = if (notificationsEnabled) "Breaking Push Alerts Active" else "Breaking Push Alerts Muted",
-                        fontFamily = Inter,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        color = InkPrimary
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = if (notificationsEnabled) Icons.Filled.NotificationsActive else Icons.Filled.NotificationsOff,
+                        contentDescription = null,
+                        tint = if (notificationsEnabled) DeepEmerald else SoftGrey,
+                        modifier = Modifier.size(22.dp)
                     )
-                    Text(
-                        text = "Instant alerts for Palestine, Islamic, Pakistan & World news",
-                        fontFamily = Inter,
-                        fontSize = 12.sp,
-                        color = SoftGrey
-                    )
+                    Column {
+                        Text(
+                            text = if (notificationsEnabled) "Priority Push Alerts Active" else "Priority Push Alerts Muted",
+                            fontFamily = Inter,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = InkPrimary
+                        )
+                        Text(
+                            text = "Alert focus: ${notificationFocus.subtitle}",
+                            fontFamily = Inter,
+                            fontSize = 12.sp,
+                            color = SoftGrey
+                        )
+                    }
                 }
+
+                Switch(
+                    checked = notificationsEnabled,
+                    onCheckedChange = onToggleNotifications,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = DeepEmerald
+                    ),
+                    modifier = Modifier.testTag("notifications_page_toggle")
+                )
             }
 
-            Switch(
-                checked = notificationsEnabled,
-                onCheckedChange = onToggleNotifications,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = DeepEmerald
-                ),
-                modifier = Modifier.testTag("notifications_page_toggle")
-            )
+            // Alert Focus Selector Pills
+            val focusScroll = rememberScrollState()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(focusScroll),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                NotificationFocus.entries.forEach { focus ->
+                    val selected = focus == notificationFocus
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (selected) DeepEmerald else PureWhite)
+                            .border(
+                                1.dp,
+                                if (selected) DeepEmerald else WarmBorder,
+                                RoundedCornerShape(10.dp)
+                            )
+                            .clickable { onSelectFocus(focus) }
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .testTag("notif_focus_${focus.name.lowercase()}")
+                    ) {
+                        Text(
+                            text = focus.label,
+                            fontFamily = Inter,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 11.5.sp,
+                            color = if (selected) Color.White else InkPrimary
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -750,29 +797,28 @@ private fun NotificationDispatchCard(
     val context = LocalContext.current
     val hasTargetTranslation = article.hasTranslation(currentLanguage)
     val effectiveLanguage = if (hasTargetTranslation) currentLanguage else AppLanguage.ENGLISH
-    val articleTitle = article.getTitle(effectiveLanguage)
-    val articleSummary = article.getSummary(effectiveLanguage)
+    val articleTitle = article.getTitle(effectiveLanguage).trim()
+    val articleSummary = article.getSummary(effectiveLanguage).trim()
     val isUrdu = effectiveLanguage == AppLanguage.URDU
     val isArabic = effectiveLanguage == AppLanguage.ARABIC
     val isRtlText = isUrdu || isArabic
     val isIslamic = article.category == NewsCategory.ISLAMIC
+    val isPriorityAlert = article.category == NewsCategory.SECURITY || article.category == NewsCategory.PALESTINE
 
-    val unifiedStoryText = remember(articleTitle, articleSummary) {
-        val cleanTitle = articleTitle.trim()
-        val cleanSummary = articleSummary.trim()
+    val cleanLead = remember(articleTitle, articleSummary) {
         when {
-            cleanSummary.isBlank() -> cleanTitle
-            cleanTitle.isBlank() -> cleanSummary
-            cleanSummary.equals(cleanTitle, ignoreCase = true) -> cleanTitle
-            cleanSummary.startsWith(cleanTitle, ignoreCase = true) -> cleanSummary
-            cleanTitle.startsWith(cleanSummary, ignoreCase = true) -> cleanTitle
-            cleanTitle.endsWith("۔") || cleanTitle.endsWith(".") || cleanTitle.endsWith("!") || cleanTitle.endsWith("؟") ->
-                "$cleanTitle $cleanSummary"
-            else ->
-                "$cleanTitle — $cleanSummary"
+            articleSummary.isBlank() || articleSummary.equals(articleTitle, ignoreCase = true) -> ""
+            articleSummary.startsWith(articleTitle, ignoreCase = true) ->
+                articleSummary.removePrefix(articleTitle).trimStart(' ', '-', '—', ':', '۔', '.')
+            else -> articleSummary
         }
     }
 
+    val headlineFontFamily = when {
+        isUrdu -> NotoNastaliqUrdu
+        isArabic -> NotoNaskhArabic
+        else -> PlayfairDisplay
+    }
     val storyFontFamily = when {
         isUrdu -> NotoNastaliqUrdu
         isArabic -> NotoNaskhArabic
@@ -831,6 +877,23 @@ private fun NotificationDispatchCard(
                         ) {
                             Text(
                                 text = "NEW",
+                                fontFamily = Inter,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 9.5.sp,
+                                color = Color.White
+                            )
+                        }
+                    }
+
+                    if (isPriorityAlert) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFFC62828))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "PRIORITY",
                                 fontFamily = Inter,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 9.5.sp,
@@ -976,25 +1039,47 @@ private fun NotificationDispatchCard(
                     }
                 }
 
-                // Story text in selected language
+                // Story headline & lead preview in selected language
                 CompositionLocalProvider(
                     LocalLayoutDirection provides (if (isRtlText) LayoutDirection.Rtl else LayoutDirection.Ltr)
                 ) {
-                    Text(
-                        text = unifiedStoryText,
-                        style = TextStyle(
-                            fontFamily = storyFontFamily,
-                            fontWeight = if (isUrdu) FontWeight.Normal else if (isUnread) FontWeight.SemiBold else FontWeight.Medium,
-                            fontSize = if (isUrdu) 16.sp else if (isArabic) 15.sp else 14.sp,
-                            lineHeight = if (isUrdu) 33.sp else if (isArabic) 28.sp else 20.sp,
-                            color = InkPrimary,
-                            textAlign = TextAlign.Start,
-                            platformStyle = PlatformTextStyle(includeFontPadding = true)
-                        ),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = articleTitle,
+                            style = TextStyle(
+                                fontFamily = headlineFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = if (isUrdu) 16.5.sp else if (isArabic) 15.5.sp else 14.5.sp,
+                                lineHeight = if (isUrdu) 33.sp else if (isArabic) 27.sp else 20.sp,
+                                color = InkPrimary,
+                                textAlign = TextAlign.Start,
+                                platformStyle = PlatformTextStyle(includeFontPadding = true)
+                            ),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (cleanLead.isNotBlank()) {
+                            Text(
+                                text = cleanLead,
+                                style = TextStyle(
+                                    fontFamily = storyFontFamily,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = if (isUrdu) 14.5.sp else if (isArabic) 13.5.sp else 12.5.sp,
+                                    lineHeight = if (isUrdu) 29.sp else if (isArabic) 24.sp else 17.sp,
+                                    color = SoftGrey,
+                                    textAlign = TextAlign.Start,
+                                    platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                ),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
                 }
             }
 

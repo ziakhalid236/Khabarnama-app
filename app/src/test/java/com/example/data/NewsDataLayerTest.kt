@@ -502,5 +502,98 @@ class NewsDataLayerTest {
         assertTrue(sources.any { it.name == "BBC News" })
         assertTrue(sources.any { it.name == "Arab News" })
         assertTrue(sources.any { it.name == "Dawn" })
+        assertTrue(sources.any { it.name == "Bellingcat" && it.category == NewsCategory.SECURITY })
+        assertTrue(sources.any { it.name == "War on the Rocks" && it.category == NewsCategory.SECURITY })
+        assertTrue(sources.any { it.name == "Yaqeen Institute" && it.isScholarlySource })
+    }
+
+    @Test
+    fun item9_priorityRanking_fullBodySocialQuotes_andBriefingCache() = runTest {
+        val now = 1_760_000_000_000L
+        val dao = database.articleDao()
+
+        val securityArticle = ArticleEntity(
+            id = "sec_1",
+            normalizedUrl = "bellingcat.com/report/1",
+            normalizedTitle = "osint analysis of border ceasefire violations",
+            title = "OSINT Analysis of Border Ceasefire Violations",
+            summary = "Satellite imagery confirms troop movements.",
+            fullBody = "Detailed satellite imagery and journalist reports posted on X show heavy artillery deployments.",
+            category = NewsCategory.SECURITY.name,
+            islamicSection = null,
+            imageUrl = "",
+            sourceName = "Bellingcat",
+            sourceUrl = "https://bellingcat.com/report/1",
+            publishedAt = now - 60_000L,
+            isIslamicSource = false,
+            isScholarlySource = false,
+            hasSocialQuote = true
+        )
+        val sportsArticle = ArticleEntity(
+            id = "spt_1",
+            normalizedUrl = "espncricinfo.com/story/1",
+            normalizedTitle = "cricket squad begins training camp",
+            title = "Cricket Squad Begins Training Camp",
+            summary = "Players arrived for test series.",
+            fullBody = "Players arrived for test series.",
+            category = NewsCategory.SPORTS.name,
+            islamicSection = null,
+            imageUrl = "",
+            sourceName = "ESPNcricinfo",
+            sourceUrl = "https://espncricinfo.com/story/1",
+            publishedAt = now, // newer timestamp, but SPORTS is de-prioritized
+            isIslamicSource = false,
+            isScholarlySource = false,
+            hasSocialQuote = false
+        )
+        dao.insertArticles(listOf(sportsArticle, securityArticle))
+
+        val repo = DefaultNewsRepository(
+            remoteSource = object : RemoteNewsSource {
+                override suspend fun fetchLatestArticles(): List<ArticleEntity> = emptyList()
+                override fun loadWhitelistedSources(): List<NewsSourceConfig> = emptyList()
+            },
+            articleDao = dao,
+            currentTimeProvider = { now }
+        )
+
+        val page = repo.getArticlesPage(category = NewsCategory.ALL, pageSize = 10)
+        assertEquals(2, page.articles.size)
+        assertEquals("sec_1", page.articles.first().id)
+        assertTrue(page.articles.first().hasSocialQuote)
+
+        // Verify direct article lookup by ID (used on notification click)
+        val fetchedById = repo.getArticleById("sec_1")
+        assertEquals("sec_1", fetchedById?.id)
+        assertTrue((fetchedById?.fullBody ?: "").contains("Satellite imagery", ignoreCase = true))
+
+        // Verify Room briefing cache round-trip
+        dao.insertBriefing(
+            com.example.data.local.ArticleBriefingEntity(
+                articleId = "sec_1",
+                languageCode = "UR",
+                editorialHeadline = "سرحدی صورتحال پر تحقیقی رپورٹ",
+                detailedSummary = "سیٹلائٹ تصاویر اور صحافیوں کی رپورٹس کے مطابق سرحدی علاقے میں نقل و حرکت دیکھی گئی ہے۔",
+                keyTakeawaysJson = """["نکتہ اول","نکتہ دوم","نکتہ سوم"]""",
+                strategicContext = "علاقائی کشیدگی میں اضافہ ہو سکتا ہے۔",
+                notableVoices = "ایکس (X) پر صحافیوں کے بیانات"
+            )
+        )
+        val cachedBriefing = dao.getBriefing("sec_1", "UR")?.toDomainModel()
+        assertEquals("سرحدی صورتحال پر تحقیقی رپورٹ", cachedBriefing?.editorialHeadline)
+        assertEquals(3, cachedBriefing?.keyTakeaways?.size)
+
+        // Verify RSS parser flags hasSocialQuote on X / Twitter / correspondent statements
+        val quoteXml = """
+            <rss version="2.0"><channel><item>
+              <title>Correspondent reports ceasefire statement posted on X</title>
+              <link>https://www.aljazeera.com/news/quote-story</link>
+              <pubDate>Mon, 10 Nov 2026 10:00:00 GMT</pubDate>
+              <description>According to a statement on X, the envoy tweeted urgent diplomatic warnings after defense talks.</description>
+            </item></channel></rss>
+        """.trimIndent()
+        val parsedQuote = RssRemoteNewsSource.parseRssXml(quoteXml, FakeNewsTestData.middleEastWorldSource)
+        assertEquals(1, parsedQuote.size)
+        assertTrue(parsedQuote.first().hasSocialQuote)
     }
 }

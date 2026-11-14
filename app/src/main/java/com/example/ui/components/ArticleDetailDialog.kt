@@ -6,6 +6,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,16 +28,21 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.AccessTime
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Language
-import androidx.compose.material.icons.automirrored.outlined.OpenInNew
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -70,12 +76,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
-import kotlinx.coroutines.Dispatchers
 import com.example.model.AppLanguage
 import com.example.model.NewsArticle
 import com.example.model.NewsCategory
+import com.example.ui.AiBriefingUiState
 import com.example.ui.theme.DeepEmerald
 import com.example.ui.theme.EmeraldTint
+import com.example.ui.theme.GoldBorder
+import com.example.ui.theme.GoldTextDark
+import com.example.ui.theme.GoldTint
 import com.example.ui.theme.InkPrimary
 import com.example.ui.theme.Inter
 import com.example.ui.theme.MutedGold
@@ -90,13 +99,17 @@ import com.example.ui.theme.WarmDivider
 import com.example.ui.theme.WarmOffWhite
 import com.example.util.BrowserUtil
 import com.example.util.PrayerTimesUtil
+import kotlinx.coroutines.Dispatchers
 
 @Composable
 fun ArticleDetailDialog(
     article: NewsArticle,
     currentLanguage: AppLanguage,
+    briefingState: AiBriefingUiState = AiBriefingUiState.Idle,
     isBookmarked: Boolean = false,
     onToggleBookmark: () -> Unit = {},
+    onSelectLanguage: (AppLanguage) -> Unit = {},
+    onRegenerateBriefing: () -> Unit = {},
     onSourceBadgeClick: (NewsArticle) -> Unit,
     onDismiss: () -> Unit,
     onRetryTranslation: () -> Unit = {},
@@ -115,44 +128,57 @@ fun ArticleDetailDialog(
 
     val hasTargetTranslation = article.hasTranslation(currentLanguage)
     val effectiveLanguage = if (hasTargetTranslation) currentLanguage else AppLanguage.ENGLISH
-    val articleTitle = article.getTitle(effectiveLanguage)
-    val articleSummary = article.getSummary(effectiveLanguage)
+    val articleTitle = article.getTitle(effectiveLanguage).trim()
+    val articleSummary = article.getSummary(effectiveLanguage).trim()
     val isUrdu = effectiveLanguage == AppLanguage.URDU
     val isArabic = effectiveLanguage == AppLanguage.ARABIC
     val isRtlText = isUrdu || isArabic
 
-    val unifiedStoryText = remember(articleTitle, articleSummary) {
-        val cleanTitle = articleTitle.trim()
-        val cleanSummary = articleSummary.trim()
+    val bodyText = remember(articleTitle, articleSummary, article.fullBody, effectiveLanguage) {
+        val rawBody = if (effectiveLanguage == AppLanguage.ENGLISH && article.fullBody.length > articleSummary.length + 25) {
+            article.fullBody.trim()
+        } else {
+            articleSummary
+        }
         when {
-            cleanSummary.isBlank() -> cleanTitle
-            cleanTitle.isBlank() -> cleanSummary
-            cleanSummary.equals(cleanTitle, ignoreCase = true) -> cleanTitle
-            cleanSummary.startsWith(cleanTitle, ignoreCase = true) -> cleanSummary
-            cleanTitle.startsWith(cleanSummary, ignoreCase = true) -> cleanTitle
-            cleanTitle.endsWith("۔") || cleanTitle.endsWith(".") || cleanTitle.endsWith("!") || cleanTitle.endsWith("؟") ->
-                "$cleanTitle\n\n$cleanSummary"
-            else ->
-                "$cleanTitle — $cleanSummary"
+            rawBody.equals(articleTitle, ignoreCase = true) -> ""
+            rawBody.startsWith(articleTitle, ignoreCase = true) ->
+                rawBody.removePrefix(articleTitle).trimStart(' ', '-', '—', ':', '۔', '.')
+            else -> rawBody
         }
     }
 
-    val storyFontFamily = when {
+    val headlineFontFamily = when {
+        isUrdu -> NotoNastaliqUrdu
+        isArabic -> NotoNaskhArabic
+        else -> PlayfairDisplay
+    }
+    val bodyFontFamily = when {
         isUrdu -> NotoNastaliqUrdu
         isArabic -> NotoNaskhArabic
         else -> Inter
     }
 
-    val storyFontSize = when {
-        isUrdu -> (20f * fontScale).sp
-        isArabic -> (18f * fontScale).sp
-        else -> (16f * fontScale).sp
+    val headlineFontSize = when {
+        isUrdu -> (22f * fontScale).sp
+        isArabic -> (20f * fontScale).sp
+        else -> (21f * fontScale).sp
+    }
+    val headlineLineHeight = when {
+        isUrdu -> (44f * fontScale).sp
+        isArabic -> (34f * fontScale).sp
+        else -> (29f * fontScale).sp
     }
 
-    val storyLineHeight = when {
-        isUrdu -> (42f * fontScale).sp
-        isArabic -> (36f * fontScale).sp
-        else -> (26f * fontScale).sp
+    val bodyFontSize = when {
+        isUrdu -> (18.5f * fontScale).sp
+        isArabic -> (17f * fontScale).sp
+        else -> (15.5f * fontScale).sp
+    }
+    val bodyLineHeight = when {
+        isUrdu -> (39f * fontScale).sp
+        isArabic -> (33f * fontScale).sp
+        else -> (25f * fontScale).sp
     }
 
     val storyLetterSpacing = when {
@@ -162,10 +188,11 @@ fun ArticleDetailDialog(
     }
 
     val shareArticle = {
+        val shareBody = bodyText.ifBlank { articleSummary }
         val shareIntent = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_SUBJECT, articleTitle)
-            putExtra(Intent.EXTRA_TEXT, "$articleTitle\n\n$articleSummary\n\n${article.sourceUrl}")
+            putExtra(Intent.EXTRA_TEXT, "$articleTitle\n\n$shareBody\n\n${article.sourceUrl}")
         }
         context.startActivity(Intent.createChooser(shareIntent, "Share Article:"))
     }
@@ -202,18 +229,28 @@ fun ArticleDetailDialog(
                                 )
                             }
 
-                            Text(
-                                text = article.sourceName,
-                                fontFamily = PlayfairDisplay,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 18.sp,
-                                color = InkPrimary,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
+                            Column(
                                 modifier = Modifier
                                     .weight(1f)
-                                    .padding(horizontal = 8.dp)
-                            )
+                                    .padding(horizontal = 6.dp)
+                            ) {
+                                Text(
+                                    text = article.sourceName,
+                                    fontFamily = PlayfairDisplay,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 17.sp,
+                                    color = InkPrimary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Text(
+                                    text = "${article.readTimeMinutes} min read • ${article.category.englishLabel}",
+                                    fontFamily = Inter,
+                                    fontSize = 11.sp,
+                                    color = SoftGrey,
+                                    maxLines = 1
+                                )
+                            }
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 IconButton(
@@ -271,8 +308,10 @@ fun ArticleDetailDialog(
                     .padding(innerPadding)
                     .verticalScroll(scrollState)
                     .navigationBarsPadding()
-                    .padding(16.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Main Story Card
                 Surface(
                     color = PureWhite,
                     shape = RoundedCornerShape(20.dp),
@@ -390,7 +429,7 @@ fun ArticleDetailDialog(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(14.dp))
 
                         // 2. Publisher & Category Meta Row (always LTR)
                         Row(
@@ -485,14 +524,6 @@ fun ArticleDetailDialog(
                                         tint = if (isIslamic) Color.Black else DeepEmerald,
                                         size = 14.dp
                                     )
-                                    if (isIslamic) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(5.dp)
-                                                .clip(CircleShape)
-                                                .background(Color.Black)
-                                        )
-                                    }
                                     Text(
                                         text = article.category.englishLabel,
                                         fontFamily = Inter,
@@ -504,9 +535,49 @@ fun ArticleDetailDialog(
                             }
                         }
 
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 3. Inline Quick Language Switcher Row inside the Full-Page Reader
+                        val langScroll = rememberScrollState()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(langScroll),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            AppLanguage.entries.forEach { lang ->
+                                val isSelected = lang == currentLanguage
+                                Row(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(if (isSelected) DeepEmerald else WarmOffWhite)
+                                        .border(
+                                            1.dp,
+                                            if (isSelected) DeepEmerald else WarmBorder,
+                                            RoundedCornerShape(10.dp)
+                                        )
+                                        .clickable { onSelectLanguage(lang) }
+                                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                                        .testTag("detail_lang_${lang.code.lowercase()}"),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(text = lang.flagEmoji, fontSize = 11.sp)
+                                    Text(
+                                        text = lang.nativeName,
+                                        fontFamily = Inter,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 11.5.sp,
+                                        color = if (isSelected) Color.White else InkPrimary
+                                    )
+                                }
+                            }
+                        }
+
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // 3. Headline & Summary (RTL aligned when Urdu/Arabic)
+                        // 4. Headline & Story Body (RTL aligned when Urdu/Arabic)
                         if (article.isTranslating && currentLanguage != AppLanguage.ENGLISH) {
                             TranslationTextShimmer(lineCount = 4)
                         } else {
@@ -524,12 +595,12 @@ fun ArticleDetailDialog(
                                     horizontalAlignment = Alignment.Start
                                 ) {
                                     Text(
-                                        text = unifiedStoryText,
+                                        text = articleTitle,
                                         style = TextStyle(
-                                            fontFamily = storyFontFamily,
-                                            fontWeight = if (isUrdu) FontWeight.Normal else FontWeight.Medium,
-                                            fontSize = storyFontSize,
-                                            lineHeight = storyLineHeight,
+                                            fontFamily = headlineFontFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = headlineFontSize,
+                                            lineHeight = headlineLineHeight,
                                             letterSpacing = storyLetterSpacing,
                                             color = InkPrimary,
                                             textAlign = TextAlign.Start,
@@ -537,47 +608,29 @@ fun ArticleDetailDialog(
                                         ),
                                         modifier = Modifier.fillMaxWidth()
                                     )
+
+                                    if (bodyText.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(if (isUrdu) 8.dp else 12.dp))
+                                        Text(
+                                            text = bodyText,
+                                            style = TextStyle(
+                                                fontFamily = bodyFontFamily,
+                                                fontWeight = FontWeight.Normal,
+                                                fontSize = bodyFontSize,
+                                                lineHeight = bodyLineHeight,
+                                                letterSpacing = storyLetterSpacing,
+                                                color = InkPrimary.copy(alpha = 0.88f),
+                                                textAlign = TextAlign.Start,
+                                                platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                            ),
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
                                 }
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // 4. Translation & Attribution Notice
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(WarmOffWhite)
-                                .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
-                                .padding(16.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Language,
-                                    contentDescription = "Publisher attribution info",
-                                    tint = DeepEmerald,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                val attributionText = if (effectiveLanguage == AppLanguage.ENGLISH) {
-                                    "${effectiveLanguage.flagEmoji} Concise editorial summary from ${article.sourceName}. Read the full dispatch on the publisher's website."
-                                } else {
-                                    "${effectiveLanguage.flagEmoji} Summary translated to ${effectiveLanguage.displayName}. Original report belongs to ${article.sourceName}."
-                                }
-                                Text(
-                                    text = attributionText,
-                                    fontFamily = Inter,
-                                    fontSize = 12.sp,
-                                    lineHeight = 18.sp,
-                                    color = SoftGrey
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(20.dp))
 
                         // 5. Primary Actions: "Read at source" button + "Share" button (48dp+ height)
                         Row(
@@ -600,7 +653,7 @@ fun ArticleDetailDialog(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Read at source",
+                                    text = "Read full source",
                                     fontFamily = Inter,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 14.sp
@@ -629,6 +682,417 @@ fun ArticleDetailDialog(
                                     fontSize = 14.sp,
                                     color = DeepEmerald
                                 )
+                            }
+                        }
+                    }
+                }
+
+                // 6. Firebase AI Intelligence & Editorial Briefing Card
+                IntelligenceBriefingCard(
+                    briefingState = briefingState,
+                    currentLanguage = currentLanguage,
+                    fontScale = fontScale,
+                    onRetry = onRegenerateBriefing
+                )
+
+                // 7. Attribution Notice
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(PureWhite)
+                        .border(1.dp, WarmBorder, RoundedCornerShape(14.dp))
+                        .padding(14.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Language,
+                            contentDescription = "Publisher attribution info",
+                            tint = DeepEmerald,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        val attributionText = if (effectiveLanguage == AppLanguage.ENGLISH) {
+                            "${effectiveLanguage.flagEmoji} Dispatched from ${article.sourceName}. Briefing synthesized for deeper background & verified context."
+                        } else {
+                            "${effectiveLanguage.flagEmoji} Journalistic report & briefing in ${effectiveLanguage.displayName}. Original dispatch belongs to ${article.sourceName}."
+                        }
+                        Text(
+                            text = attributionText,
+                            fontFamily = Inter,
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp,
+                            color = SoftGrey
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IntelligenceBriefingCard(
+    briefingState: AiBriefingUiState,
+    currentLanguage: AppLanguage,
+    fontScale: Float,
+    onRetry: () -> Unit
+) {
+    val isUrdu = currentLanguage == AppLanguage.URDU
+    val isArabic = currentLanguage == AppLanguage.ARABIC
+    val isRtl = isUrdu || isArabic
+
+    val textFamily = when {
+        isUrdu -> NotoNastaliqUrdu
+        isArabic -> NotoNaskhArabic
+        else -> Inter
+    }
+    val headingFamily = when {
+        isUrdu -> NotoNastaliqUrdu
+        isArabic -> NotoNaskhArabic
+        else -> PlayfairDisplay
+    }
+    val textSize = when {
+        isUrdu -> (17.5f * fontScale).sp
+        isArabic -> (16.5f * fontScale).sp
+        else -> (14.5f * fontScale).sp
+    }
+    val lineHeight = when {
+        isUrdu -> (37f * fontScale).sp
+        isArabic -> (31f * fontScale).sp
+        else -> (22f * fontScale).sp
+    }
+
+    Surface(
+        color = PureWhite,
+        shape = RoundedCornerShape(20.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.2.dp, GoldBorder, RoundedCornerShape(20.dp))
+            .testTag("ai_intelligence_briefing_card")
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            GoldTint.copy(alpha = 0.55f),
+                            PureWhite,
+                            PureWhite
+                        )
+                    )
+                )
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Card Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(30.dp)
+                            .clip(CircleShape)
+                            .background(DeepEmerald),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = "Intelligence Briefing",
+                            tint = Color(0xFFF3DFA2),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = "Intelligence & Editorial Briefing",
+                            fontFamily = Inter,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp,
+                            color = DeepEmerald
+                        )
+                        Text(
+                            text = "Deep context, key takeaways & notable voices",
+                            fontFamily = Inter,
+                            fontSize = 11.sp,
+                            color = SoftGrey
+                        )
+                    }
+                }
+
+                if (briefingState is AiBriefingUiState.Success || briefingState is AiBriefingUiState.Error) {
+                    IconButton(
+                        onClick = onRetry,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .testTag("refresh_briefing_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = "Regenerate briefing",
+                            tint = DeepEmerald,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider(thickness = 1.dp, color = GoldBorder.copy(alpha = 0.6f))
+
+            when (briefingState) {
+                AiBriefingUiState.Idle, AiBriefingUiState.Loading -> {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = DeepEmerald
+                        )
+                        Text(
+                            text = "Preparing detailed journalistic briefing in ${currentLanguage.displayName}...",
+                            fontFamily = Inter,
+                            fontSize = 13.sp,
+                            color = SoftGrey
+                        )
+                    }
+                }
+
+                is AiBriefingUiState.Error -> {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.Top,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Info,
+                                contentDescription = null,
+                                tint = GoldTextDark,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                text = briefingState.message,
+                                fontFamily = Inter,
+                                fontSize = 13.sp,
+                                lineHeight = 19.sp,
+                                color = SoftGrey
+                            )
+                        }
+                        OutlinedButton(
+                            onClick = onRetry,
+                            shape = RoundedCornerShape(10.dp),
+                            border = BorderStroke(1.dp, DeepEmerald),
+                            modifier = Modifier.heightIn(min = 40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = null,
+                                tint = DeepEmerald,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Retry Briefing",
+                                fontFamily = Inter,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.sp,
+                                color = DeepEmerald
+                            )
+                        }
+                    }
+                }
+
+                is AiBriefingUiState.Success -> {
+                    val briefing = briefingState.briefing
+                    CompositionLocalProvider(
+                        LocalLayoutDirection provides (if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            if (briefing.editorialHeadline.isNotBlank()) {
+                                Text(
+                                    text = briefing.editorialHeadline,
+                                    style = TextStyle(
+                                        fontFamily = headingFamily,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = if (isUrdu) (19f * fontScale).sp else (17f * fontScale).sp,
+                                        lineHeight = if (isUrdu) (38f * fontScale).sp else (24f * fontScale).sp,
+                                        color = DeepEmerald,
+                                        textAlign = TextAlign.Start,
+                                        platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+
+                            Text(
+                                text = briefing.detailedSummary,
+                                style = TextStyle(
+                                    fontFamily = textFamily,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = textSize,
+                                    lineHeight = lineHeight,
+                                    color = InkPrimary,
+                                    textAlign = TextAlign.Start,
+                                    platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            if (briefing.keyTakeaways.isNotEmpty()) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(EmeraldTint.copy(alpha = 0.48f))
+                                        .border(1.dp, DeepEmerald.copy(alpha = 0.16f), RoundedCornerShape(14.dp))
+                                        .padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = when (currentLanguage) {
+                                            AppLanguage.URDU -> "اہم نکات"
+                                            AppLanguage.ARABIC -> "أبرز النقاط"
+                                            else -> "KEY TAKEAWAYS"
+                                        },
+                                        fontFamily = if (isRtl) textFamily else Inter,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = if (isUrdu) 16.sp else 11.5.sp,
+                                        color = DeepEmerald
+                                    )
+                                    briefing.keyTakeaways.forEach { point ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.Top
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .padding(top = if (isUrdu) 13.dp else 7.dp)
+                                                    .size(6.dp)
+                                                    .clip(CircleShape)
+                                                    .background(MutedGold)
+                                            )
+                                            Text(
+                                                text = point,
+                                                style = TextStyle(
+                                                    fontFamily = textFamily,
+                                                    fontSize = textSize,
+                                                    lineHeight = lineHeight,
+                                                    color = InkPrimary,
+                                                    textAlign = TextAlign.Start,
+                                                    platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                                ),
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (briefing.strategicContext.isNotBlank()) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(WarmOffWhite)
+                                        .border(1.dp, WarmBorder, RoundedCornerShape(14.dp))
+                                        .padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = when (currentLanguage) {
+                                            AppLanguage.URDU -> "اسٹریٹجک پس منظر"
+                                            AppLanguage.ARABIC -> "السياق الاستراتيجي"
+                                            else -> "STRATEGIC & REGIONAL CONTEXT"
+                                        },
+                                        fontFamily = if (isRtl) textFamily else Inter,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = if (isUrdu) 16.sp else 11.5.sp,
+                                        color = GoldTextDark
+                                    )
+                                    Text(
+                                        text = briefing.strategicContext,
+                                        style = TextStyle(
+                                            fontFamily = textFamily,
+                                            fontSize = textSize,
+                                            lineHeight = lineHeight,
+                                            color = InkPrimary.copy(alpha = 0.9f),
+                                            textAlign = TextAlign.Start,
+                                            platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            }
+
+                            if (briefing.notableVoices.isNotBlank()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(14.dp))
+                                        .background(GoldTint.copy(alpha = 0.65f))
+                                        .border(1.dp, GoldBorder, RoundedCornerShape(14.dp))
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.FormatQuote,
+                                        contentDescription = null,
+                                        tint = GoldTextDark,
+                                        modifier = Modifier
+                                            .padding(top = 4.dp)
+                                            .size(18.dp)
+                                    )
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(3.dp)
+                                    ) {
+                                        Text(
+                                            text = when (currentLanguage) {
+                                                AppLanguage.URDU -> "اہم بیانات، صحافتی ذرائع اور علماء"
+                                                AppLanguage.ARABIC -> "أبرز التصريحات والمصادر"
+                                                else -> "NOTABLE VOICES, X POSTS & SCHOLARS"
+                                            },
+                                            fontFamily = if (isRtl) textFamily else Inter,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = if (isUrdu) 15.5.sp else 11.sp,
+                                            color = GoldTextDark
+                                        )
+                                        Text(
+                                            text = briefing.notableVoices,
+                                            style = TextStyle(
+                                                fontFamily = textFamily,
+                                                fontSize = textSize,
+                                                lineHeight = lineHeight,
+                                                color = InkPrimary,
+                                                textAlign = TextAlign.Start,
+                                                platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                            ),
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

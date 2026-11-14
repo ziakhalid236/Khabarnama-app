@@ -31,17 +31,25 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
+enum class NotificationFocus(val label: String, val subtitle: String) {
+    ALL_PRIORITY("All Priority", "War, Security, Palestine & Global"),
+    SECURITY_WAR("War & Security", "Conflict, Defense, OSINT & Tensions"),
+    PALESTINE("Palestine", "Gaza, West Bank & Regional"),
+    ISLAMIC_SCHOLARS("Scholars & Ummah", "Arab & Ajam Scholars, Haramain")
+}
+
 object NewsNotificationHelper {
 
     const val CHANNEL_ID = "khabarnama_breaking_news"
-    private const val CHANNEL_NAME = "Breaking & Featured News"
-    private const val CHANNEL_DESC = "Important breaking news and top dispatches with photo previews"
+    private const val CHANNEL_NAME = "Breaking & Priority Dispatches"
+    private const val CHANNEL_DESC = "War, security, Palestine, and scholarly Islamic alerts with photo previews"
     const val EXTRA_NOTIFICATION_ARTICLE_ID = "extra_notification_article_id"
 
     private const val PREFS_NAME = "khabarnama_prefs"
     const val KEY_NOTIFICATIONS_ENABLED = "breaking_notifications_enabled"
+    const val KEY_NOTIFICATION_FOCUS = "notification_alert_focus"
     private const val KEY_NOTIFIED_IDS = "notified_article_ids"
-    private const val MAX_STORED_NOTIFIED_IDS = 50
+    private const val MAX_STORED_NOTIFIED_IDS = 80
 
     private val imageHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -88,9 +96,20 @@ object NewsNotificationHelper {
         prefs.edit().putBoolean(KEY_NOTIFICATIONS_ENABLED, enabled).apply()
     }
 
+    fun getNotificationFocus(context: Context): NotificationFocus {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val raw = prefs.getString(KEY_NOTIFICATION_FOCUS, NotificationFocus.ALL_PRIORITY.name)
+        return NotificationFocus.entries.firstOrNull { it.name == raw } ?: NotificationFocus.ALL_PRIORITY
+    }
+
+    fun setNotificationFocus(context: Context, focus: NotificationFocus) {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putString(KEY_NOTIFICATION_FOCUS, focus.name).apply()
+    }
+
     /**
-     * Automatically sends a rich image notification for the newest breaking/top story
-     * if it hasn't been notified before.
+     * Automatically sends a rich image notification for the newest high-priority breaking story
+     * respecting the user's alert focus and excluding Sports/Business noise.
      */
     suspend fun notifyLatestBreakingNewsIfNew(
         context: Context,
@@ -109,16 +128,50 @@ object NewsNotificationHelper {
             .filter { it.isNotEmpty() }
             .toMutableList()
 
-        // Only notify for fresh dispatches published within the last 12 hours so old stories never trigger alerts
+        val focus = getNotificationFocus(context)
+
+        // Only notify for fresh dispatches published within the last 12 hours, never Sports/Business
         val minFreshTimestamp = System.currentTimeMillis() - (12L * 3600L * 1000L)
-        val freshArticles = articles
-            .filter { it.publishedAt >= minFreshTimestamp && it.id !in notifiedSet }
-            .sortedByDescending { it.publishedAt }
+        val eligiblePool = articles.filter { article ->
+            article.publishedAt >= minFreshTimestamp &&
+                article.id !in notifiedSet &&
+                article.category != com.example.model.NewsCategory.SPORTS &&
+                article.category != com.example.model.NewsCategory.BUSINESS
+        }
 
-        if (freshArticles.isEmpty()) return@withContext false
+        if (eligiblePool.isEmpty()) return@withContext false
 
-        // Prefer a fresh breaking story that has a valid hero image
-        val candidate = freshArticles.firstOrNull { it.hasValidImage } ?: freshArticles.first()
+        val focusMatched = when (focus) {
+            NotificationFocus.ALL_PRIORITY -> eligiblePool
+            NotificationFocus.SECURITY_WAR -> eligiblePool.filter {
+                it.category == com.example.model.NewsCategory.SECURITY ||
+                    it.category == com.example.model.NewsCategory.PALESTINE ||
+                    it.category == com.example.model.NewsCategory.WORLD ||
+                    it.category == com.example.model.NewsCategory.PAKISTAN
+            }.ifEmpty { eligiblePool }
+            NotificationFocus.PALESTINE -> eligiblePool.filter {
+                it.category == com.example.model.NewsCategory.PALESTINE
+            }.ifEmpty { eligiblePool }
+            NotificationFocus.ISLAMIC_SCHOLARS -> eligiblePool.filter {
+                it.category == com.example.model.NewsCategory.ISLAMIC
+            }.ifEmpty { eligiblePool }
+        }
+
+        val ranked = focusMatched.sortedByDescending { article ->
+            val catWeight = when (article.category) {
+                com.example.model.NewsCategory.SECURITY -> 4L * 3600_000L
+                com.example.model.NewsCategory.PALESTINE -> 4L * 3600_000L
+                com.example.model.NewsCategory.ISLAMIC -> 3L * 3600_000L
+                com.example.model.NewsCategory.WORLD -> 2L * 3600_000L
+                com.example.model.NewsCategory.PAKISTAN -> 2L * 3600_000L
+                else -> 0L
+            }
+            val quoteBoost = if (article.hasSocialQuote) 1800_000L else 0L
+            article.publishedAt + catWeight + quoteBoost
+        }
+
+        // Prefer a fresh priority story that has a valid hero image
+        val candidate = ranked.firstOrNull { it.hasValidImage } ?: ranked.first()
 
         val sent = postRichArticleNotification(context, candidate, language)
         if (sent) {
@@ -150,6 +203,7 @@ object NewsNotificationHelper {
                 ?: createBrandedBannerBitmap(article.sourceName, article.category.englishLabel)
 
             val launchIntent = Intent(context, MainActivity::class.java).apply {
+                action = "com.khabarnama.news.OPEN_ARTICLE_${article.id}"
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 putExtra(EXTRA_NOTIFICATION_ARTICLE_ID, article.id)
             }
@@ -161,16 +215,23 @@ object NewsNotificationHelper {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
+            val subLabel = when (article.category) {
+                com.example.model.NewsCategory.SECURITY,
+                com.example.model.NewsCategory.PALESTINE -> "PRIORITY • ${article.category.englishLabel} • ${article.sourceName}"
+                com.example.model.NewsCategory.ISLAMIC -> "UMMAH DISPATCH • ${article.sourceName}"
+                else -> "Breaking • ${article.sourceName}"
+            }
+
             val bigPictureStyle = NotificationCompat.BigPictureStyle()
                 .bigPicture(heroBitmap)
                 .bigLargeIcon(null as Bitmap?)
                 .setBigContentTitle(title)
-                .setSummaryText("${article.sourceName} • ${article.category.englishLabel}")
+                .setSummaryText(summary.take(180))
 
             val notification = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_monochrome)
                 .setColor(0xFF0F5C4D.toInt())
-                .setSubText("Breaking • ${article.sourceName}")
+                .setSubText(subLabel)
                 .setContentTitle(title)
                 .setContentText(summary)
                 .setLargeIcon(heroBitmap)

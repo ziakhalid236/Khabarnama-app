@@ -7,17 +7,21 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.DefaultNewsRepository
 import com.example.data.NewsRepository
 import com.example.data.SyncStatus
+import com.example.data.ai.SituationBrief
 import com.example.data.local.AppDatabase
 import com.example.data.remote.RssRemoteNewsSource
 import com.example.model.AppLanguage
+import com.example.model.ArticleBriefing
 import com.example.model.IslamicSection
 import com.example.model.LocalizedContent
 import com.example.model.NewsArticle
 import com.example.model.NewsCategory
 import com.example.util.CityPrayerInfo
 import com.example.util.NewsNotificationHelper
+import com.example.util.NotificationFocus
 import com.example.util.PrayerTimesUtil
 import com.example.worker.NewsSyncWorker
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -30,6 +34,20 @@ import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+
+sealed interface AiBriefingUiState {
+    data object Idle : AiBriefingUiState
+    data object Loading : AiBriefingUiState
+    data class Success(val briefing: ArticleBriefing) : AiBriefingUiState
+    data class Error(val message: String) : AiBriefingUiState
+}
+
+sealed interface SituationBriefUiState {
+    data object Idle : SituationBriefUiState
+    data object Loading : SituationBriefUiState
+    data class Success(val brief: SituationBrief) : SituationBriefUiState
+    data class Error(val message: String) : SituationBriefUiState
+}
 
 class NewsViewModel @JvmOverloads constructor(
     application: Application,
@@ -52,6 +70,11 @@ class NewsViewModel @JvmOverloads constructor(
         NewsNotificationHelper.isNotificationsEnabled(application)
     )
     val notificationsEnabled: StateFlow<Boolean> = _notificationsEnabled.asStateFlow()
+
+    private val _notificationFocus = MutableStateFlow(
+        NewsNotificationHelper.getNotificationFocus(application)
+    )
+    val notificationFocus: StateFlow<NotificationFocus> = _notificationFocus.asStateFlow()
 
     @Volatile
     private var pendingNotificationArticleId: String? = null
@@ -87,6 +110,12 @@ class NewsViewModel @JvmOverloads constructor(
     private val _selectedArticleForDetail = MutableStateFlow<NewsArticle?>(null)
     val selectedArticleForDetail: StateFlow<NewsArticle?> = _selectedArticleForDetail.asStateFlow()
 
+    private val _activeBriefingState = MutableStateFlow<AiBriefingUiState>(AiBriefingUiState.Idle)
+    val activeBriefingState: StateFlow<AiBriefingUiState> = _activeBriefingState.asStateFlow()
+
+    private val _situationBriefState = MutableStateFlow<SituationBriefUiState>(SituationBriefUiState.Idle)
+    val situationBriefState: StateFlow<SituationBriefUiState> = _situationBriefState.asStateFlow()
+
     private val _isShowingPrayerDialog = MutableStateFlow(false)
     val isShowingPrayerDialog: StateFlow<Boolean> = _isShowingPrayerDialog.asStateFlow()
 
@@ -95,6 +124,9 @@ class NewsViewModel @JvmOverloads constructor(
 
     private val _isInitialLoading = MutableStateFlow(true)
     val isInitialLoading: StateFlow<Boolean> = _isInitialLoading.asStateFlow()
+
+    private val _isBackgroundSyncing = MutableStateFlow(false)
+    val isBackgroundSyncing: StateFlow<Boolean> = _isBackgroundSyncing.asStateFlow()
 
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
@@ -143,6 +175,8 @@ class NewsViewModel @JvmOverloads constructor(
     // Single reload job & request generation id to prevent races between filter changes and loadMore
     private var reloadJob: Job? = null
     private var loadMoreJob: Job? = null
+    private var briefingJob: Job? = null
+    private var situationJob: Job? = null
     private val activeRequestId = AtomicLong(0L)
 
     // Thread-safe sets for failed and in-flight translations
@@ -156,10 +190,7 @@ class NewsViewModel @JvmOverloads constructor(
     }
 
     private fun loadRecentSearchesFromPrefs(): List<String> {
-        val raw = prefs.getString(KEY_RECENT_SEARCHES, null)
-        if (raw == null) {
-            return DEFAULT_RECENT_SEARCHES
-        }
+        val raw = prefs.getString(KEY_RECENT_SEARCHES, null) ?: return DEFAULT_RECENT_SEARCHES
         return raw.split(RECENT_SEARCH_DELIMITER)
             .map { it.trim() }
             .filter { it.isNotEmpty() }
@@ -266,21 +297,33 @@ class NewsViewModel @JvmOverloads constructor(
             if (cachedCount > 0) {
                 _isInitialLoading.value = false
                 reloadFromCacheInternal(requestId)
+                _isBackgroundSyncing.value = true
+            } else {
+                // First-time cold start: fetch top priority feeds fast (~6-8 feeds) so the user doesn't wait
+                val fastStatus = repository.syncFastPriorityBatch()
+                if (activeRequestId.get() == requestId && fastStatus == SyncStatus.SUCCESS) {
+                    _isOffline.value = false
+                    _errorMessage.value = null
+                    reloadFromCacheInternal(requestId)
+                    _isInitialLoading.value = false
+                    _isBackgroundSyncing.value = true
+                }
             }
 
-            // Live RSS network sync in background
+            // Full live RSS network sync in background
             val status = repository.syncFromRemote()
             if (activeRequestId.get() == requestId) {
+                _isBackgroundSyncing.value = false
                 handleSyncStatus(status)
                 reloadFromCacheInternal(requestId)
                 _isInitialLoading.value = false
                 if (status == SyncStatus.SUCCESS) {
-                    val snapshot = _articles.value
+                    val alertPool = _notificationArticles.value.ifEmpty { _articles.value }
                     val lang = _currentLanguage.value
                     viewModelScope.launch(Dispatchers.IO) {
                         NewsNotificationHelper.notifyLatestBreakingNewsIfNew(
                             context = getApplication(),
-                            articles = snapshot,
+                            articles = alertPool,
                             language = lang
                         )
                     }
@@ -353,7 +396,7 @@ class NewsViewModel @JvmOverloads constructor(
             pageSize = pageSize
         )
 
-        val rawNotifications = repository.getRecentAlertArticles(limit = 25)
+        val rawNotifications = repository.getRecentAlertArticles(limit = 30)
         val savedList = repository.getSavedArticles(_savedArticleIds.value)
         if (activeRequestId.get() != requestId) return
 
@@ -365,7 +408,9 @@ class NewsViewModel @JvmOverloads constructor(
 
         val dismissed = _dismissedNotificationIds.value
         val alertSourceList = if (rawNotifications.isNotEmpty()) {
-            rawNotifications
+            rawNotifications.filterNot {
+                it.category == NewsCategory.SPORTS || it.category == NewsCategory.BUSINESS
+            }.ifEmpty { rawNotifications }
         } else {
             (pageResult.articles + featured).distinctBy { it.id }.sortedByDescending { it.publishedAt }.take(20)
         }
@@ -376,12 +421,14 @@ class NewsViewModel @JvmOverloads constructor(
         _savedArticles.value = applyRuntimeTranslationFlags(savedList, lang)
 
         pendingNotificationArticleId?.let { targetId ->
-            val matched = (_articles.value + _featuredIslamicArticles.value + _notificationArticles.value)
+            val matched = (_articles.value + _featuredIslamicArticles.value + _notificationArticles.value + _savedArticles.value)
                 .firstOrNull { it.id == targetId }
+                ?: repository.getArticleById(targetId)?.let {
+                    applyRuntimeTranslationFlags(listOf(it), lang).first()
+                }
             if (matched != null) {
-                markNotificationRead(matched.id)
-                _selectedArticleForDetail.value = matched
                 pendingNotificationArticleId = null
+                openArticleDetail(matched)
             }
         }
 
@@ -393,6 +440,12 @@ class NewsViewModel @JvmOverloads constructor(
         _currentLanguage.value = language
         prefs.edit().putString(KEY_SELECTED_LANGUAGE, language.code).apply()
         scheduleReload(debounceMs = 0L)
+        _selectedArticleForDetail.value?.let { openArticle ->
+            loadArticleBriefing(openArticle, forceRefresh = false)
+        }
+        if (_situationBriefState.value is SituationBriefUiState.Success) {
+            generateSituationBrief()
+        }
     }
 
     fun retryTranslations() {
@@ -402,6 +455,9 @@ class NewsViewModel @JvmOverloads constructor(
         _articles.update { applyRuntimeTranslationFlags(it, lang) }
         _notificationArticles.update { applyRuntimeTranslationFlags(it, lang) }
         _savedArticles.update { applyRuntimeTranslationFlags(it, lang) }
+        _selectedArticleForDetail.update { current ->
+            current?.let { applyRuntimeTranslationFlags(listOf(it), lang).first() }
+        }
         enqueueMissingTranslations(lang)
     }
 
@@ -455,17 +511,18 @@ class NewsViewModel @JvmOverloads constructor(
 
             val status = repository.syncFromRemote()
             if (activeRequestId.get() == requestId) {
+                _isBackgroundSyncing.value = false
                 handleSyncStatus(status)
                 reloadFromCacheInternal(requestId)
                 _isRefreshing.value = false
                 _isInitialLoading.value = false
                 if (status == SyncStatus.SUCCESS) {
-                    val snapshot = _articles.value
+                    val alertPool = _notificationArticles.value.ifEmpty { _articles.value }
                     val lang = _currentLanguage.value
                     viewModelScope.launch(Dispatchers.IO) {
                         NewsNotificationHelper.notifyLatestBreakingNewsIfNew(
                             context = getApplication(),
-                            articles = snapshot,
+                            articles = alertPool,
                             language = lang
                         )
                     }
@@ -557,34 +614,40 @@ class NewsViewModel @JvmOverloads constructor(
             .take(28)
 
         for (article in candidates) {
-            val key = "${article.id}_${lang.code}"
-            viewModelScope.launch {
-                try {
-                    translationSemaphore.withPermit {
-                        val content = repository.getOrTranslateArticle(article, lang)
-                        if (content != null) {
-                            failedTranslations.remove(key)
-                            updateArticleTranslationState(
-                                articleId = article.id,
-                                lang = lang,
-                                content = content,
-                                failed = false
-                            )
-                        } else {
-                            failedTranslations.add(key)
-                            updateArticleTranslationState(
-                                articleId = article.id,
-                                lang = lang,
-                                content = null,
-                                failed = true
-                            )
-                        }
+            translateSingleArticleAsync(article, lang)
+        }
+    }
+
+    private fun translateSingleArticleAsync(article: NewsArticle, lang: AppLanguage) {
+        val key = "${article.id}_${lang.code}"
+        viewModelScope.launch {
+            try {
+                translationSemaphore.withPermit {
+                    val content = repository.getOrTranslateArticle(article, lang)
+                    if (content != null) {
+                        failedTranslations.remove(key)
+                        updateArticleTranslationState(
+                            articleId = article.id,
+                            lang = lang,
+                            content = content,
+                            failed = false
+                        )
+                    } else {
+                        failedTranslations.add(key)
+                        updateArticleTranslationState(
+                            articleId = article.id,
+                            lang = lang,
+                            content = null,
+                            failed = true
+                        )
                     }
-                } catch (_: Exception) {
-                    failedTranslations.add(key)
-                } finally {
-                    inFlightTranslations.remove(key)
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                failedTranslations.add(key)
+            } finally {
+                inFlightTranslations.remove(key)
             }
         }
     }
@@ -635,10 +698,85 @@ class NewsViewModel @JvmOverloads constructor(
             recordRecentSearch(_searchQuery.value)
         }
         markNotificationRead(article.id)
-        _selectedArticleForDetail.value = article
+        val lang = _currentLanguage.value
+        val prepared = applyRuntimeTranslationFlags(listOf(article), lang).first()
+        _selectedArticleForDetail.value = prepared
+        if (lang != AppLanguage.ENGLISH && !prepared.hasTranslation(lang)) {
+            val key = "${prepared.id}_${lang.code}"
+            if (inFlightTranslations.add(key)) {
+                translateSingleArticleAsync(prepared, lang)
+            }
+        }
+        loadArticleBriefing(prepared, forceRefresh = false)
+    }
+
+    fun loadArticleBriefing(article: NewsArticle, forceRefresh: Boolean = false) {
+        briefingJob?.cancel()
+        val lang = _currentLanguage.value
+        _activeBriefingState.value = AiBriefingUiState.Loading
+        briefingJob = viewModelScope.launch {
+            try {
+                val result = repository.getOrGenerateArticleBriefing(article, lang, forceRefresh)
+                if (_selectedArticleForDetail.value?.id == article.id) {
+                    result.onSuccess { briefing ->
+                        _activeBriefingState.value = AiBriefingUiState.Success(briefing)
+                    }.onFailure { err ->
+                        _activeBriefingState.value = AiBriefingUiState.Error(
+                            err.message ?: "Unable to prepare intelligence briefing."
+                        )
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (_selectedArticleForDetail.value?.id == article.id) {
+                    _activeBriefingState.value = AiBriefingUiState.Error(
+                        e.message ?: "Unable to prepare intelligence briefing."
+                    )
+                }
+            }
+        }
+    }
+
+    fun generateSituationBrief() {
+        val pool = (_articles.value + _notificationArticles.value)
+            .distinctBy { it.id }
+            .filter { it.category != NewsCategory.SPORTS && it.category != NewsCategory.BUSINESS }
+            .ifEmpty { _articles.value }
+            .take(8)
+        if (pool.isEmpty()) return
+
+        situationJob?.cancel()
+        val lang = _currentLanguage.value
+        _situationBriefState.value = SituationBriefUiState.Loading
+        situationJob = viewModelScope.launch {
+            try {
+                val result = repository.generateSituationBrief(pool, lang)
+                result.onSuccess { brief ->
+                    _situationBriefState.value = SituationBriefUiState.Success(brief)
+                }.onFailure { err ->
+                    _situationBriefState.value = SituationBriefUiState.Error(
+                        err.message ?: "Situation brief could not be generated right now."
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _situationBriefState.value = SituationBriefUiState.Error(
+                    e.message ?: "Situation brief could not be generated right now."
+                )
+            }
+        }
+    }
+
+    fun dismissSituationBrief() {
+        situationJob?.cancel()
+        _situationBriefState.value = SituationBriefUiState.Idle
     }
 
     fun closeArticleDetail() {
+        briefingJob?.cancel()
+        _activeBriefingState.value = AiBriefingUiState.Idle
         _selectedArticleForDetail.value = null
     }
 
@@ -666,8 +804,16 @@ class NewsViewModel @JvmOverloads constructor(
         NewsNotificationHelper.setNotificationsEnabled(getApplication(), enabled)
     }
 
+    fun setNotificationFocus(focus: NotificationFocus) {
+        _notificationFocus.value = focus
+        NewsNotificationHelper.setNotificationFocus(getApplication(), focus)
+    }
+
     fun sendTestBreakingNotification() {
-        val allArticles = _articles.value + _featuredIslamicArticles.value
+        val allArticles = (_notificationArticles.value + _articles.value + _featuredIslamicArticles.value)
+            .distinctBy { it.id }
+            .filter { it.category != NewsCategory.SPORTS && it.category != NewsCategory.BUSINESS }
+            .ifEmpty { _articles.value + _featuredIslamicArticles.value }
         val candidate = allArticles.firstOrNull { it.imageUrl.startsWith("https://") }
             ?: allArticles.firstOrNull()
             ?: return
@@ -683,12 +829,21 @@ class NewsViewModel @JvmOverloads constructor(
 
     fun openArticleById(articleId: String) {
         if (articleId.isBlank()) return
-        val matched = (_articles.value + _featuredIslamicArticles.value).firstOrNull { it.id == articleId }
+        val matched = (_articles.value + _featuredIslamicArticles.value + _notificationArticles.value + _savedArticles.value)
+            .firstOrNull { it.id == articleId }
         if (matched != null) {
-            _selectedArticleForDetail.value = matched
             pendingNotificationArticleId = null
+            openArticleDetail(matched)
         } else {
             pendingNotificationArticleId = articleId
+            viewModelScope.launch {
+                val fromDb = repository.getArticleById(articleId)
+                if (fromDb != null && pendingNotificationArticleId == articleId) {
+                    pendingNotificationArticleId = null
+                    val prepared = applyRuntimeTranslationFlags(listOf(fromDb), _currentLanguage.value).first()
+                    openArticleDetail(prepared)
+                }
+            }
         }
     }
 

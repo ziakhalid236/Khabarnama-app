@@ -1,14 +1,18 @@
 package com.example.data
 
 import android.content.Context
+import com.example.data.ai.FirebaseIntelligenceService
 import com.example.data.ai.GeminiNewsTranslator
 import com.example.data.ai.NewsTranslator
+import com.example.data.ai.SituationBrief
+import com.example.data.local.ArticleBriefingEntity
 import com.example.data.local.ArticleDao
 import com.example.data.local.ArticleEntity
 import com.example.data.local.ArticleTranslationEntity
 import com.example.data.remote.RemoteNewsSource
 import com.example.data.remote.RssRemoteNewsSource
 import com.example.model.AppLanguage
+import com.example.model.ArticleBriefing
 import com.example.model.IslamicSection
 import com.example.model.LocalizedContent
 import com.example.model.NewsArticle
@@ -31,12 +35,14 @@ data class PaginatedArticlesResult(
 )
 
 interface NewsRepository {
+    suspend fun syncFastPriorityBatch(): SyncStatus = syncFromRemote()
     suspend fun syncFromRemote(): SyncStatus
     suspend fun getCachedArticleCount(): Int
     suspend fun seedInitialArticlesIfEmpty(): Boolean
     suspend fun getFeaturedIslamicArticles(limit: Int = 4): List<NewsArticle>
     suspend fun getRecentAlertArticles(limit: Int = 25): List<NewsArticle> = emptyList()
     suspend fun getSavedArticles(articleIds: Set<String>): List<NewsArticle> = emptyList()
+    suspend fun getArticleById(articleId: String): NewsArticle? = null
     suspend fun getArticlesPage(
         category: NewsCategory,
         islamicSection: IslamicSection? = null,
@@ -52,12 +58,24 @@ interface NewsRepository {
         article: NewsArticle,
         targetLanguage: AppLanguage
     ): LocalizedContent?
+
+    suspend fun getOrGenerateArticleBriefing(
+        article: NewsArticle,
+        targetLanguage: AppLanguage,
+        forceRefresh: Boolean = false
+    ): Result<ArticleBriefing> = Result.failure(UnsupportedOperationException("AI Briefing not available"))
+
+    suspend fun generateSituationBrief(
+        articles: List<NewsArticle>,
+        targetLanguage: AppLanguage
+    ): Result<SituationBrief> = Result.failure(UnsupportedOperationException("Situation Brief not available"))
 }
 
 class DefaultNewsRepository(
     private val remoteSource: RemoteNewsSource,
     private val articleDao: ArticleDao,
     private val translator: NewsTranslator = GeminiNewsTranslator(),
+    private val intelligenceService: FirebaseIntelligenceService = FirebaseIntelligenceService(),
     private val currentTimeProvider: () -> Long = { System.currentTimeMillis() },
     private val context: Context? = null
 ) : NewsRepository {
@@ -66,8 +84,23 @@ class DefaultNewsRepository(
         runCatching {
             articleDao.deleteDemoSeedArticles()
             articleDao.deleteOrphanTranslations()
+            articleDao.deleteOrphanBriefings()
         }
         false
+    }
+
+    override suspend fun syncFastPriorityBatch(): SyncStatus = withContext(Dispatchers.IO) {
+        try {
+            articleDao.deleteDemoSeedArticles()
+            val fetched = remoteSource.fetchFastPriorityArticles()
+            if (fetched.isNotEmpty()) {
+                upsertDeduplicatedBatch(fetched)
+                return@withContext SyncStatus.SUCCESS
+            }
+        } catch (_: Exception) {
+            // Fall through to cache check
+        }
+        if (articleDao.getTotalCount() > 0) SyncStatus.OFFLINE_WITH_CACHE else SyncStatus.ERROR_EMPTY_CACHE
     }
 
     override suspend fun syncFromRemote(): SyncStatus = withContext(Dispatchers.IO) {
@@ -75,27 +108,13 @@ class DefaultNewsRepository(
             articleDao.deleteDemoSeedArticles()
             val fetched = remoteSource.fetchLatestArticles()
             if (fetched.isNotEmpty()) {
-                val deduplicatedBatch = RssRemoteNewsSource.deduplicateArticles(fetched)
-                val existingUrls = articleDao.getAllNormalizedUrls().toHashSet()
-                val existingTitles = articleDao.getAllNormalizedTitles().toHashSet()
+                upsertDeduplicatedBatch(fetched)
 
-                val toUpsert = mutableListOf<ArticleEntity>()
-                for (entity in deduplicatedBatch) {
-                    if (entity.normalizedUrl in existingUrls || entity.normalizedTitle !in existingTitles) {
-                        existingUrls.add(entity.normalizedUrl)
-                        existingTitles.add(entity.normalizedTitle)
-                        toUpsert.add(entity)
-                    }
-                }
-
-                if (toUpsert.isNotEmpty()) {
-                    articleDao.insertArticles(toUpsert)
-                }
-
-                // Cleanup articles older than 14 days and delete orphan translations
+                // Cleanup articles older than 14 days and delete orphan translations/briefings
                 val fourteenDaysAgo = currentTimeProvider() - FOURTEEN_DAYS_MS
                 articleDao.deleteArticlesOlderThan(fourteenDaysAgo)
                 articleDao.deleteOrphanTranslations()
+                articleDao.deleteOrphanBriefings()
 
                 return@withContext SyncStatus.SUCCESS
             }
@@ -111,24 +130,67 @@ class DefaultNewsRepository(
         }
     }
 
+    private suspend fun upsertDeduplicatedBatch(fetched: List<ArticleEntity>) {
+        val deduplicatedBatch = RssRemoteNewsSource.deduplicateArticles(fetched)
+        val existingUrls = articleDao.getAllNormalizedUrls().toHashSet()
+        val existingTitles = articleDao.getAllNormalizedTitles().toHashSet()
+
+        val toUpsert = mutableListOf<ArticleEntity>()
+        for (entity in deduplicatedBatch) {
+            if (entity.normalizedUrl in existingUrls || entity.normalizedTitle !in existingTitles) {
+                existingUrls.add(entity.normalizedUrl)
+                existingTitles.add(entity.normalizedTitle)
+                toUpsert.add(entity)
+            }
+        }
+
+        if (toUpsert.isNotEmpty()) {
+            articleDao.insertArticles(toUpsert)
+        }
+    }
+
     override suspend fun getCachedArticleCount(): Int = withContext(Dispatchers.IO) {
         articleDao.getTotalCount()
     }
 
+    override suspend fun getArticleById(articleId: String): NewsArticle? = withContext(Dispatchers.IO) {
+        if (articleId.isBlank()) return@withContext null
+        val entity = articleDao.getArticleById(articleId) ?: return@withContext null
+        mapEntitiesWithTranslations(listOf(entity), isFeaturedIslamic = entity.category == NewsCategory.ISLAMIC.name)
+            .firstOrNull()
+    }
+
     override suspend fun getFeaturedIslamicArticles(limit: Int): List<NewsArticle> = withContext(Dispatchers.IO) {
-        val entities = articleDao.getLatestIslamicArticles(limit)
-        mapEntitiesWithTranslations(entities, isFeaturedIslamic = true)
+        val pool = articleDao.getLatestIslamicArticles(limit * 4)
+        // Balance diverse global scholars & outlets so no single scholar/source dominates
+        val diverseSelection = mutableListOf<ArticleEntity>()
+        val usedSources = HashSet<String>()
+        for (item in pool) {
+            if (usedSources.add(item.sourceName)) {
+                diverseSelection.add(item)
+                if (diverseSelection.size >= limit) break
+            }
+        }
+        if (diverseSelection.size < limit) {
+            val selectedIds = diverseSelection.map { it.id }.toHashSet()
+            for (item in pool) {
+                if (item.id !in selectedIds) {
+                    diverseSelection.add(item)
+                    if (diverseSelection.size >= limit) break
+                }
+            }
+        }
+        mapEntitiesWithTranslations(diverseSelection, isFeaturedIslamic = true)
     }
 
     override suspend fun getRecentAlertArticles(limit: Int): List<NewsArticle> = withContext(Dispatchers.IO) {
-        val cutoff36h = currentTimeProvider() - THIRTY_SIX_HOURS_MS
-        val recentEntities = articleDao.getRecentAlertArticles(minPublishedAt = cutoff36h, limit = limit)
+        val cutoff24h = currentTimeProvider() - TWENTY_FOUR_HOURS_MS
+        val recentEntities = articleDao.getRecentAlertArticles(minPublishedAt = cutoff24h, limit = limit)
         val finalEntities = if (recentEntities.isNotEmpty()) {
             recentEntities
         } else {
-            // Fallback to newest 12 articles if cached feed is older than 36h while offline
-            val cutoff7d = currentTimeProvider() - (7L * 24L * 3600L * 1000L)
-            articleDao.getRecentAlertArticles(minPublishedAt = cutoff7d, limit = 12)
+            val cutoff72h = currentTimeProvider() - SEVENTY_TWO_HOURS_MS
+            articleDao.getRecentAlertArticles(minPublishedAt = cutoff72h, limit = 15)
         }
         mapEntitiesWithTranslations(finalEntities, isFeaturedIslamic = false)
     }
@@ -182,7 +244,7 @@ class DefaultNewsRepository(
         PaginatedArticlesResult(
             articles = articles,
             hasMore = hasMore,
-            nextBeforePublishedAt = lastItem?.publishedAt ?: 0L,
+            nextBeforePublishedAt = lastItem?.let { computeRankScore(it, category) } ?: 0L,
             nextAfterId = lastItem?.id ?: ""
         )
     }
@@ -203,9 +265,12 @@ class DefaultNewsRepository(
             )
         }
 
+        // Prefer richer body text up to 110 words when available so Urdu & Arabic translations have journalistic depth
+        val sourceTextForTranslation = article.fullBody.takeIf { it.length > article.summary.length + 20 }
+            ?: article.summary
         val translated = translator.translateArticle(
             title = article.title,
-            summary = article.summary,
+            summary = sourceTextForTranslation,
             targetLanguage = targetLanguage
         )
 
@@ -222,6 +287,43 @@ class DefaultNewsRepository(
         }
 
         null
+    }
+
+    override suspend fun getOrGenerateArticleBriefing(
+        article: NewsArticle,
+        targetLanguage: AppLanguage,
+        forceRefresh: Boolean
+    ): Result<ArticleBriefing> = withContext(Dispatchers.IO) {
+        if (!forceRefresh) {
+            val cached = articleDao.getBriefing(article.id, targetLanguage.code)
+            if (cached != null && cached.detailedSummary.isNotBlank()) {
+                return@withContext Result.success(cached.toDomainModel())
+            }
+        }
+
+        val generated = intelligenceService.generateArticleBriefing(article, targetLanguage)
+        generated.onSuccess { briefing ->
+            val takeawaysJson = JSONArray(briefing.keyTakeaways).toString()
+            articleDao.insertBriefing(
+                ArticleBriefingEntity(
+                    articleId = article.id,
+                    languageCode = targetLanguage.code,
+                    editorialHeadline = briefing.editorialHeadline,
+                    detailedSummary = briefing.detailedSummary,
+                    keyTakeawaysJson = takeawaysJson,
+                    strategicContext = briefing.strategicContext,
+                    notableVoices = briefing.notableVoices
+                )
+            )
+        }
+        generated
+    }
+
+    override suspend fun generateSituationBrief(
+        articles: List<NewsArticle>,
+        targetLanguage: AppLanguage
+    ): Result<SituationBrief> {
+        return intelligenceService.generateSituationBrief(articles, targetLanguage)
     }
 
     private suspend fun mapEntitiesWithTranslations(
@@ -248,8 +350,25 @@ class DefaultNewsRepository(
         }
     }
 
+    private fun computeRankScore(entity: ArticleEntity, activeCategory: NewsCategory): Long {
+        if (activeCategory != NewsCategory.ALL) return entity.publishedAt
+        val boost = when (entity.category) {
+            NewsCategory.SECURITY.name -> 14_400_000L
+            NewsCategory.PALESTINE.name -> 14_400_000L
+            NewsCategory.ISLAMIC.name -> 10_800_000L
+            NewsCategory.WORLD.name -> 7_200_000L
+            NewsCategory.PAKISTAN.name -> 7_200_000L
+            NewsCategory.TECHNOLOGY.name -> -14_400_000L
+            NewsCategory.BUSINESS.name -> -64_800_000L
+            NewsCategory.SPORTS.name -> -86_400_000L
+            else -> 0L
+        }
+        return entity.publishedAt + boost
+    }
+
     companion object {
         const val FOURTEEN_DAYS_MS = 14L * 24L * 3600L * 1000L
-        const val THIRTY_SIX_HOURS_MS = 36L * 3600L * 1000L
+        const val SEVENTY_TWO_HOURS_MS = 72L * 3600L * 1000L
+        const val TWENTY_FOUR_HOURS_MS = 24L * 3600L * 1000L
     }
 }

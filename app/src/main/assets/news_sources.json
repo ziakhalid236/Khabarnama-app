@@ -1,5 +1,61 @@
 [
   {
+    "name": "Bellingcat",
+    "feedUrl": "https://www.bellingcat.com/feed/",
+    "category": "SECURITY",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "War on the Rocks",
+    "feedUrl": "https://warontherocks.com/feed/",
+    "category": "SECURITY",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "The War Zone",
+    "feedUrl": "https://www.twz.com/feed",
+    "category": "SECURITY",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Long War Journal",
+    "feedUrl": "https://www.longwarjournal.org/feed",
+    "category": "SECURITY",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Defense News",
+    "feedUrl": "https://www.defensenews.com/arc/outboundfeeds/rss/?outputType=xml",
+    "category": "SECURITY",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "The Intercept",
+    "feedUrl": "https://theintercept.com/feed/?rss",
+    "category": "SECURITY",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Drop Site News",
+    "feedUrl": "https://www.dropsitenews.com/feed",
+    "category": "SECURITY",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
     "name": "Palestine Chronicle",
     "feedUrl": "https://www.palestinechronicle.com/feed/",
     "category": "PALESTINE",
@@ -10,6 +66,14 @@
   {
     "name": "Middle East Monitor",
     "feedUrl": "https://www.middleeastmonitor.com/feed/",
+    "category": "PALESTINE",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Mondoweiss",
+    "feedUrl": "https://mondoweiss.net/feed/",
     "category": "PALESTINE",
     "language": "EN",
     "isIslamicSource": false,
@@ -48,6 +112,30 @@
     "isScholarlySource": true
   },
   {
+    "name": "Yaqeen Institute",
+    "feedUrl": "https://yaqeeninstitute.org/feed",
+    "category": "ISLAMIC",
+    "language": "EN",
+    "isIslamicSource": true,
+    "isScholarlySource": true
+  },
+  {
+    "name": "Traversing Tradition",
+    "feedUrl": "https://traversingtradition.com/feed/",
+    "category": "ISLAMIC",
+    "language": "EN",
+    "isIslamicSource": true,
+    "isScholarlySource": true
+  },
+  {
+    "name": "IslamiCity",
+    "feedUrl": "https://www.islamicity.org/feed/",
+    "category": "ISLAMIC",
+    "language": "EN",
+    "isIslamicSource": true,
+    "isScholarlySource": true
+  },
+  {
     "name": "MuslimMatters",
     "feedUrl": "https://muslimmatters.org/feed/",
     "category": "ISLAMIC",
@@ -66,6 +154,14 @@
   {
     "name": "5Pillars",
     "feedUrl": "https://5pillarsuk.com/feed/",
+    "category": "ISLAMIC",
+    "language": "EN",
+    "isIslamicSource": true,
+    "isScholarlySource": false
+  },
+  {
+    "name": "The Muslim Vibe",
+    "feedUrl": "https://themuslimvibe.com/feed",
     "category": "ISLAMIC",
     "language": "EN",
     "isIslamicSource": true,
@@ -144,6 +240,22 @@
     "isScholarlySource": false
   },
   {
+    "name": "The Cradle",
+    "feedUrl": "https://thecradle.co/feed",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
+    "name": "Responsible Statecraft",
+    "feedUrl": "https://responsiblestatecraft.org/feed/",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
     "name": "Arab News",
     "feedUrl": "https://www.arabnews.com/rss.xml",
     "category": "WORLD",
@@ -184,6 +296,14 @@
     "isScholarlySource": false
   },
   {
+    "name": "BBC Asia",
+    "feedUrl": "https://feeds.bbci.co.uk/news/world/asia/rss.xml",
+    "category": "WORLD",
+    "language": "EN",
+    "isIslamicSource": false,
+    "isScholarlySource": false
+  },
+  {
     "name": "UN News",
     "feedUrl": "https://news.un.org/feed/subscribe/en/news/all/rss.xml",
     "category": "WORLD",
@@ -200,14 +320,6 @@
     "isScholarlySource": false
   },
   {
-    "name": "Business Recorder",
-    "feedUrl": "https://www.brecorder.com/feeds/latest-news",
-    "category": "BUSINESS",
-    "language": "EN",
-    "isIslamicSource": false,
-    "isScholarlySource": false
-  },
-  {
     "name": "TechCrunch",
     "feedUrl": "https://techcrunch.com/feed/",
     "category": "TECHNOLOGY",
@@ -216,17 +328,17 @@
     "isScholarlySource": false
   },
   {
-    "name": "The Verge",
-    "feedUrl": "https://www.theverge.com/rss/index.xml",
+    "name": "The Express Tribune",
+    "feedUrl": "https://tribune.com.pk/feed/technology",
     "category": "TECHNOLOGY",
     "language": "EN",
     "isIslamicSource": false,
     "isScholarlySource": false
   },
   {
-    "name": "Ars Technica",
-    "feedUrl": "https://feeds.arstechnica.com/arstechnica/index",
-    "category": "TECHNOLOGY",
+    "name": "Business Recorder",
+    "feedUrl": "https://www.brecorder.com/feeds/latest-news",
+    "category": "BUSINESS",
     "language": "EN",
     "isIslamicSource": false,
     "isScholarlySource": false
@@ -235,22 +347,6 @@
     "name": "ESPNcricinfo",
     "feedUrl": "https://www.espncricinfo.com/rss/content/story/feeds/0.xml",
     "category": "SPORTS",
-    "language": "EN",
-    "isIslamicSource": false,
-    "isScholarlySource": false
-  },
-  {
-    "name": "BBC Asia",
-    "feedUrl": "https://feeds.bbci.co.uk/news/world/asia/rss.xml",
-    "category": "WORLD",
-    "language": "EN",
-    "isIslamicSource": false,
-    "isScholarlySource": false
-  },
-  {
-    "name": "The Express Tribune",
-    "feedUrl": "https://tribune.com.pk/feed/technology",
-    "category": "TECHNOLOGY",
     "language": "EN",
     "isIslamicSource": false,
     "isScholarlySource": false
