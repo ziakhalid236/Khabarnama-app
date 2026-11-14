@@ -46,9 +46,15 @@ class GeminiNewsTranslator(
         )
     )
 
-    private val generativeModel by lazy {
-        Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
-            modelName = "gemini-3.8-flash",
+    @Volatile
+    private var cachedTranslationModelPair: Pair<String, com.google.firebase.ai.GenerativeModel>? = null
+
+    private fun getGenerativeModel(): com.google.firebase.ai.GenerativeModel {
+        val targetModelName = com.example.data.remote.RemoteConfigManager.config.value.aiModelName
+        val current = cachedTranslationModelPair
+        if (current != null && current.first == targetModelName) return current.second
+        val created = Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
+            modelName = targetModelName,
             generationConfig = generationConfig {
                 responseMimeType = "application/json"
                 responseSchema = translationSchema
@@ -67,6 +73,8 @@ class GeminiNewsTranslator(
                 )
             }
         )
+        cachedTranslationModelPair = targetModelName to created
+        return created
     }
 
     override suspend fun translateArticle(
@@ -78,8 +86,9 @@ class GeminiNewsTranslator(
             return@withContext LocalizedContent(title = title, summary = summary)
         }
 
+        val remoteCfg = com.example.data.remote.RemoteConfigManager.config.value
         val now = System.currentTimeMillis()
-        if (now >= firebaseCooldownUntilMs.get()) {
+        if (remoteCfg.aiTranslationEnabled && now >= firebaseCooldownUntilMs.get()) {
             val geminiResult = tryTranslateWithGemini(title, summary, targetLanguage)
             if (geminiResult != null) {
                 consecutiveGeminiFailures.set(0)
@@ -121,7 +130,7 @@ class GeminiNewsTranslator(
 
         return try {
             val response = withTimeout(40_000L) {
-                generativeModel.generateContent(prompt)
+                getGenerativeModel().generateContent(prompt)
             }
             val rawJson = response.text?.trim().orEmpty()
             if (rawJson.isBlank()) return null

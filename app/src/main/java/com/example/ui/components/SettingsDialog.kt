@@ -69,6 +69,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.BuildConfig
+import com.example.data.remote.AppRemoteConfig
 import com.example.data.remote.RssRemoteNewsSource
 import com.example.model.AppLanguage
 import com.example.model.NewsCategory
@@ -95,6 +97,9 @@ fun SettingsDialog(
     selectedCity: CityPrayerInfo,
     hijriAdjustment: Int = 0,
     notificationsEnabled: Boolean = true,
+    remoteConfig: AppRemoteConfig = AppRemoteConfig(),
+    videoChannelsCount: Int = 4,
+    onSyncRemoteConfig: () -> Unit = {},
     onToggleNotifications: (Boolean) -> Unit = {},
     onHijriAdjustmentSelected: (Int) -> Unit = {},
     onOpenLanguageSelect: () -> Unit,
@@ -795,6 +800,85 @@ fun SettingsDialog(
                     }
                 }
 
+                // SECTION 3B: FIREBASE CLOUD OTA UPDATES
+                Surface(
+                    color = PureWhite,
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .border(1.dp, GoldBorder, RoundedCornerShape(20.dp))
+                        .testTag("settings_firebase_ota_section")
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Firebase Live Cloud Sync",
+                                fontFamily = PlayfairDisplay,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                color = InkPrimary
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (remoteConfig.isRemoteSynced) EmeraldTint else GoldTint)
+                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = if (remoteConfig.isRemoteSynced) "OTA Active" else "Defaults Ready",
+                                    fontFamily = Inter,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = if (remoteConfig.isRemoteSynced) DeepEmerald else GoldTextDark
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "News publishers (${distinctSources.size}), official video channels ($videoChannelsCount), live alerts, AI model (${remoteConfig.aiModelName}), and cache retention (${remoteConfig.articleRetentionDays}d) update over-the-air via Firebase Remote Config without requiring an app reinstall.",
+                            fontFamily = Inter,
+                            fontSize = 12.5.sp,
+                            lineHeight = 19.sp,
+                            color = SoftGrey
+                        )
+
+                        OutlinedButton(
+                            onClick = onSyncRemoteConfig,
+                            enabled = !isRefreshing,
+                            border = BorderStroke(1.dp, DeepEmerald),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .testTag("sync_remote_config_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Refresh,
+                                contentDescription = "Sync Firebase Remote Config",
+                                tint = DeepEmerald,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Sync Cloud Config & Video Channels",
+                                fontFamily = Inter,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 13.5.sp,
+                                color = DeepEmerald
+                            )
+                        }
+                    }
+                }
+
                 // SECTION 4: ABOUT
                 Surface(
                     color = PureWhite,
@@ -824,7 +908,7 @@ fun SettingsDialog(
                                     color = InkPrimary
                                 )
                                 Text(
-                                    text = "Khabarnama v1.0.0 • Global & Islamic Dispatch",
+                                    text = "Khabarnama v${BuildConfig.VERSION_NAME} • Global & Islamic Dispatch",
                                     fontFamily = Inter,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.5.sp,

@@ -767,65 +767,55 @@ private fun IntelligenceBriefingCard(
 
     Surface(
         color = PureWhite,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.2.dp, GoldBorder, RoundedCornerShape(20.dp))
+            .border(1.4.dp, DeepEmerald, RoundedCornerShape(16.dp))
             .testTag("ai_intelligence_briefing_card")
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            GoldTint.copy(alpha = 0.55f),
-                            PureWhite,
-                            PureWhite
-                        )
-                    )
-                )
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            // Card Header
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Authoritative Obsidian Header Strip
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(DeepEmerald)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(30.dp)
-                            .clip(CircleShape)
-                            .background(DeepEmerald),
+                            .size(28.dp)
+                            .clip(RoundedCornerShape(7.dp))
+                            .background(PureWhite),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "Intelligence Briefing",
-                            tint = Color(0xFFF3DFA2),
+                            contentDescription = "Editorial Intelligence Briefing",
+                            tint = DeepEmerald,
                             modifier = Modifier.size(16.dp)
                         )
                     }
                     Column {
                         Text(
-                            text = "Intelligence & Editorial Briefing",
+                            text = "EDITORIAL INTELLIGENCE",
                             fontFamily = Inter,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = DeepEmerald
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 11.5.sp,
+                            letterSpacing = 0.8.sp,
+                            color = PureWhite
                         )
                         Text(
-                            text = "Deep context, key takeaways & notable voices",
+                            text = "Deep context, takeaways & notable voices",
                             fontFamily = Inter,
                             fontSize = 11.sp,
-                            color = SoftGrey
+                            color = Color(0xFFD4D4D8)
                         )
                     }
                 }
@@ -834,166 +824,280 @@ private fun IntelligenceBriefingCard(
                     IconButton(
                         onClick = onRetry,
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(40.dp)
                             .testTag("refresh_briefing_button")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
                             contentDescription = "Regenerate briefing",
-                            tint = DeepEmerald,
+                            tint = PureWhite,
                             modifier = Modifier.size(18.dp)
                         )
                     }
                 }
             }
 
-            HorizontalDivider(thickness = 1.dp, color = GoldBorder.copy(alpha = 0.6f))
-
-            when (briefingState) {
-                AiBriefingUiState.Idle, AiBriefingUiState.Loading -> {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = DeepEmerald
-                        )
-                        Text(
-                            text = "Preparing detailed journalistic briefing in ${currentLanguage.displayName}...",
-                            fontFamily = Inter,
-                            fontSize = 13.sp,
-                            color = SoftGrey
-                        )
-                    }
-                }
-
-                is AiBriefingUiState.Error -> {
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                when (briefingState) {
+                    AiBriefingUiState.Idle, AiBriefingUiState.Loading -> {
                         Row(
-                            verticalAlignment = Alignment.Top,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Info,
-                                contentDescription = null,
-                                tint = GoldTextDark,
-                                modifier = Modifier.size(18.dp)
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = InkPrimary
                             )
                             Text(
-                                text = briefingState.message,
+                                text = "Compiling editorial briefing in ${currentLanguage.displayName}...",
                                 fontFamily = Inter,
                                 fontSize = 13.sp,
-                                lineHeight = 19.sp,
                                 color = SoftGrey
                             )
                         }
-                        OutlinedButton(
-                            onClick = onRetry,
-                            shape = RoundedCornerShape(10.dp),
-                            border = BorderStroke(1.dp, DeepEmerald),
-                            modifier = Modifier.heightIn(min = 40.dp)
+                    }
+
+                    is AiBriefingUiState.Error -> {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = null,
-                                tint = DeepEmerald,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Retry Briefing",
-                                fontFamily = Inter,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 13.sp,
-                                color = DeepEmerald
-                            )
+                            Row(
+                                verticalAlignment = Alignment.Top,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(WarmOffWhite)
+                                    .border(1.dp, WarmBorder, RoundedCornerShape(10.dp))
+                                    .padding(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Info,
+                                    contentDescription = null,
+                                    tint = InkPrimary,
+                                    modifier = Modifier
+                                        .padding(top = 1.dp)
+                                        .size(18.dp)
+                                )
+                                Text(
+                                    text = briefingState.message,
+                                    fontFamily = Inter,
+                                    fontSize = 13.sp,
+                                    lineHeight = 19.sp,
+                                    color = SoftGrey
+                                )
+                            }
+                            Button(
+                                onClick = onRetry,
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = DeepEmerald,
+                                    contentColor = PureWhite
+                                ),
+                                modifier = Modifier.heightIn(min = 48.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Retry Briefing",
+                                    fontFamily = Inter,
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 13.sp
+                                )
+                            }
                         }
                     }
-                }
 
-                is AiBriefingUiState.Success -> {
-                    val briefing = briefingState.briefing
-                    CompositionLocalProvider(
-                        LocalLayoutDirection provides (if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                    is AiBriefingUiState.Success -> {
+                        val briefing = briefingState.briefing
+                        CompositionLocalProvider(
+                            LocalLayoutDirection provides (if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
                         ) {
-                            if (briefing.editorialHeadline.isNotBlank()) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(14.dp)
+                            ) {
+                                if (briefing.editorialHeadline.isNotBlank()) {
+                                    Text(
+                                        text = briefing.editorialHeadline,
+                                        style = TextStyle(
+                                            fontFamily = headingFamily,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = if (isUrdu) (19.5f * fontScale).sp else (17.5f * fontScale).sp,
+                                            lineHeight = if (isUrdu) (38f * fontScale).sp else (24f * fontScale).sp,
+                                            color = InkPrimary,
+                                            textAlign = TextAlign.Start,
+                                            platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+
                                 Text(
-                                    text = briefing.editorialHeadline,
+                                    text = briefing.detailedSummary,
                                     style = TextStyle(
-                                        fontFamily = headingFamily,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = if (isUrdu) (19f * fontScale).sp else (17f * fontScale).sp,
-                                        lineHeight = if (isUrdu) (38f * fontScale).sp else (24f * fontScale).sp,
-                                        color = DeepEmerald,
+                                        fontFamily = textFamily,
+                                        fontWeight = FontWeight.Normal,
+                                        fontSize = textSize,
+                                        lineHeight = lineHeight,
+                                        color = InkPrimary,
                                         textAlign = TextAlign.Start,
                                         platformStyle = PlatformTextStyle(includeFontPadding = true)
                                     ),
                                     modifier = Modifier.fillMaxWidth()
                                 )
-                            }
 
-                            Text(
-                                text = briefing.detailedSummary,
-                                style = TextStyle(
-                                    fontFamily = textFamily,
-                                    fontWeight = FontWeight.Normal,
-                                    fontSize = textSize,
-                                    lineHeight = lineHeight,
-                                    color = InkPrimary,
-                                    textAlign = TextAlign.Start,
-                                    platformStyle = PlatformTextStyle(includeFontPadding = true)
-                                ),
-                                modifier = Modifier.fillMaxWidth()
-                            )
+                                if (briefing.keyTakeaways.isNotEmpty()) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(WarmOffWhite)
+                                            .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
+                                            .padding(14.dp),
+                                        verticalArrangement = Arrangement.spacedBy(9.dp)
+                                    ) {
+                                        Text(
+                                            text = when (currentLanguage) {
+                                                AppLanguage.URDU -> "اہم نکات"
+                                                AppLanguage.ARABIC -> "أبرز النقاط"
+                                                else -> "KEY TAKEAWAYS"
+                                            },
+                                            fontFamily = if (isRtl) textFamily else Inter,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = if (isUrdu) 16.sp else 11.sp,
+                                            letterSpacing = if (isRtl) 0.sp else 0.7.sp,
+                                            color = InkPrimary
+                                        )
+                                        briefing.keyTakeaways.forEach { point ->
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.spacedBy(9.dp),
+                                                verticalAlignment = Alignment.Top
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .padding(top = if (isUrdu) 13.dp else 7.dp)
+                                                        .size(5.dp)
+                                                        .background(InkPrimary)
+                                                )
+                                                Text(
+                                                    text = point,
+                                                    style = TextStyle(
+                                                        fontFamily = textFamily,
+                                                        fontSize = textSize,
+                                                        lineHeight = lineHeight,
+                                                        color = InkPrimary,
+                                                        textAlign = TextAlign.Start,
+                                                        platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                                    ),
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
 
-                            if (briefing.keyTakeaways.isNotEmpty()) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(EmeraldTint.copy(alpha = 0.48f))
-                                        .border(1.dp, DeepEmerald.copy(alpha = 0.16f), RoundedCornerShape(14.dp))
-                                        .padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    Text(
-                                        text = when (currentLanguage) {
-                                            AppLanguage.URDU -> "اہم نکات"
-                                            AppLanguage.ARABIC -> "أبرز النقاط"
-                                            else -> "KEY TAKEAWAYS"
-                                        },
-                                        fontFamily = if (isRtl) textFamily else Inter,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = if (isUrdu) 16.sp else 11.5.sp,
-                                        color = DeepEmerald
-                                    )
-                                    briefing.keyTakeaways.forEach { point ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.Top
+                                if (briefing.strategicContext.isNotBlank()) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(WarmOffWhite)
+                                            .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
+                                            .padding(14.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .width(3.dp)
+                                                .height(42.dp)
+                                                .background(InkPrimary)
+                                        )
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
                                         ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .padding(top = if (isUrdu) 13.dp else 7.dp)
-                                                    .size(6.dp)
-                                                    .clip(CircleShape)
-                                                    .background(MutedGold)
+                                            Text(
+                                                text = when (currentLanguage) {
+                                                    AppLanguage.URDU -> "اسٹریٹجک پس منظر"
+                                                    AppLanguage.ARABIC -> "السياق الاستراتيجي"
+                                                    else -> "STRATEGIC & REGIONAL CONTEXT"
+                                                },
+                                                fontFamily = if (isRtl) textFamily else Inter,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = if (isUrdu) 16.sp else 11.sp,
+                                                letterSpacing = if (isRtl) 0.sp else 0.7.sp,
+                                                color = InkPrimary
                                             )
                                             Text(
-                                                text = point,
+                                                text = briefing.strategicContext,
+                                                style = TextStyle(
+                                                    fontFamily = textFamily,
+                                                    fontSize = textSize,
+                                                    lineHeight = lineHeight,
+                                                    color = InkPrimary.copy(alpha = 0.9f),
+                                                    textAlign = TextAlign.Start,
+                                                    platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                                ),
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    }
+                                }
+
+                                if (briefing.notableVoices.isNotBlank()) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(PureWhite)
+                                            .border(1.dp, InkPrimary, RoundedCornerShape(12.dp))
+                                            .padding(14.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.FormatQuote,
+                                            contentDescription = null,
+                                            tint = InkPrimary,
+                                            modifier = Modifier
+                                                .padding(top = 3.dp)
+                                                .size(18.dp)
+                                        )
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = when (currentLanguage) {
+                                                    AppLanguage.URDU -> "اہم بیانات، صحافتی ذرائع اور علماء"
+                                                    AppLanguage.ARABIC -> "أبرز التصريحات والمصادر"
+                                                    else -> "NOTABLE VOICES, X POSTS & SCHOLARS"
+                                                },
+                                                fontFamily = if (isRtl) textFamily else Inter,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = if (isUrdu) 15.5.sp else 11.sp,
+                                                letterSpacing = if (isRtl) 0.sp else 0.6.sp,
+                                                color = InkPrimary
+                                            )
+                                            Text(
+                                                text = briefing.notableVoices,
                                                 style = TextStyle(
                                                     fontFamily = textFamily,
                                                     fontSize = textSize,
@@ -1002,95 +1106,9 @@ private fun IntelligenceBriefingCard(
                                                     textAlign = TextAlign.Start,
                                                     platformStyle = PlatformTextStyle(includeFontPadding = true)
                                                 ),
-                                                modifier = Modifier.weight(1f)
+                                                modifier = Modifier.fillMaxWidth()
                                             )
                                         }
-                                    }
-                                }
-                            }
-
-                            if (briefing.strategicContext.isNotBlank()) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(WarmOffWhite)
-                                        .border(1.dp, WarmBorder, RoundedCornerShape(14.dp))
-                                        .padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Text(
-                                        text = when (currentLanguage) {
-                                            AppLanguage.URDU -> "اسٹریٹجک پس منظر"
-                                            AppLanguage.ARABIC -> "السياق الاستراتيجي"
-                                            else -> "STRATEGIC & REGIONAL CONTEXT"
-                                        },
-                                        fontFamily = if (isRtl) textFamily else Inter,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = if (isUrdu) 16.sp else 11.5.sp,
-                                        color = GoldTextDark
-                                    )
-                                    Text(
-                                        text = briefing.strategicContext,
-                                        style = TextStyle(
-                                            fontFamily = textFamily,
-                                            fontSize = textSize,
-                                            lineHeight = lineHeight,
-                                            color = InkPrimary.copy(alpha = 0.9f),
-                                            textAlign = TextAlign.Start,
-                                            platformStyle = PlatformTextStyle(includeFontPadding = true)
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            }
-
-                            if (briefing.notableVoices.isNotBlank()) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(14.dp))
-                                        .background(GoldTint.copy(alpha = 0.65f))
-                                        .border(1.dp, GoldBorder, RoundedCornerShape(14.dp))
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.Top
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.FormatQuote,
-                                        contentDescription = null,
-                                        tint = GoldTextDark,
-                                        modifier = Modifier
-                                            .padding(top = 4.dp)
-                                            .size(18.dp)
-                                    )
-                                    Column(
-                                        modifier = Modifier.weight(1f),
-                                        verticalArrangement = Arrangement.spacedBy(3.dp)
-                                    ) {
-                                        Text(
-                                            text = when (currentLanguage) {
-                                                AppLanguage.URDU -> "اہم بیانات، صحافتی ذرائع اور علماء"
-                                                AppLanguage.ARABIC -> "أبرز التصريحات والمصادر"
-                                                else -> "NOTABLE VOICES, X POSTS & SCHOLARS"
-                                            },
-                                            fontFamily = if (isRtl) textFamily else Inter,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = if (isUrdu) 15.5.sp else 11.sp,
-                                            color = GoldTextDark
-                                        )
-                                        Text(
-                                            text = briefing.notableVoices,
-                                            style = TextStyle(
-                                                fontFamily = textFamily,
-                                                fontSize = textSize,
-                                                lineHeight = lineHeight,
-                                                color = InkPrimary,
-                                                textAlign = TextAlign.Start,
-                                                platformStyle = PlatformTextStyle(includeFontPadding = true)
-                                            ),
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
                                     }
                                 }
                             }

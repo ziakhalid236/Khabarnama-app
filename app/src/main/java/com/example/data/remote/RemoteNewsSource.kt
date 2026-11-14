@@ -46,12 +46,17 @@ class RssRemoteNewsSource(
     }
 
     override fun loadWhitelistedSources(): List<NewsSourceConfig> {
-        return try {
+        val bundled = try {
             val jsonString = context.assets.open("news_sources.json").bufferedReader().use { it.readText() }
             parseSourcesJson(jsonString)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             emptyList()
         }
+        val remoteCfg = RemoteConfigManager.config.value
+        val disabled = remoteCfg.disabledFeedUrls
+        return (remoteCfg.extraNewsSources + bundled)
+            .distinctBy { it.feedUrl }
+            .filterNot { it.feedUrl in disabled }
     }
 
     override suspend fun fetchFastPriorityArticles(): List<ArticleEntity> = withContext(Dispatchers.IO) {

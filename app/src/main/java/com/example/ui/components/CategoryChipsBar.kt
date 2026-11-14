@@ -300,9 +300,9 @@ fun CategoryChipsBar(
 
                         val chipBorderColor by animateColorAsState(
                             targetValue = when {
-                                isIslamic && isSelected -> Color.Black
-                                isIslamic -> Color(0xFF1A1A1A)
-                                isSelected -> MutedGold
+                                isIslamic && isSelected -> Color(0xFF0A0A0B)
+                                isIslamic -> Color(0xFF18181B)
+                                isSelected -> Color(0xFF0A0A0B)
                                 else -> WarmBorder
                             },
                             animationSpec = tween(durationMillis = 200),
@@ -310,8 +310,6 @@ fun CategoryChipsBar(
                         )
                         val chipTextColor by animateColorAsState(
                             targetValue = when {
-                                isIslamic && isSelected -> Color.White
-                                isIslamic -> Color.Black
                                 isSelected -> Color.White
                                 else -> InkPrimary
                             },
@@ -320,53 +318,30 @@ fun CategoryChipsBar(
                         )
 
                         val cardShape = RoundedCornerShape(14.dp)
-                        val backgroundBrush = when {
-                            isIslamic && isSelected -> Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFF111111),
-                                    Color(0xFF222222)
-                                )
-                            )
-                            isIslamic -> Brush.linearGradient(
-                                colors = listOf(
-                                    Color.White,
-                                    Color(0xFFF7F7F7)
-                                )
-                            )
-                            isSelected -> Brush.linearGradient(
-                                colors = listOf(
-                                    Color(0xFF146E5C),
-                                    DeepEmerald,
-                                    Color(0xFF0A4237)
-                                )
-                            )
-                            else -> Brush.linearGradient(
-                                colors = listOf(
-                                    PureWhite,
-                                    Color(0xFFFCFBF8)
-                                )
-                            )
+                        val chipBackground = when {
+                            isSelected -> Color(0xFF0D0D0E)
+                            else -> PureWhite
                         }
 
                         val iconBadgeBg = when {
                             isIslamic -> Color.White
-                            isSelected -> Color.White.copy(alpha = 0.20f)
-                            else -> EmeraldTint.copy(alpha = 0.75f)
+                            isSelected -> Color.White.copy(alpha = 0.16f)
+                            else -> EmeraldTint
                         }
 
                         Box(
                             modifier = Modifier
                                 .heightIn(min = 38.dp)
                                 .shadow(
-                                    elevation = if (isSelected) 3.dp else 1.dp,
+                                    elevation = if (isSelected) 2.dp else 0.5.dp,
                                     shape = cardShape,
-                                    ambientColor = DeepEmerald.copy(alpha = 0.14f),
-                                    spotColor = DeepEmerald.copy(alpha = 0.16f)
+                                    ambientColor = Color.Black.copy(alpha = 0.08f),
+                                    spotColor = Color.Black.copy(alpha = 0.10f)
                                 )
                                 .clip(cardShape)
-                                .background(backgroundBrush)
+                                .background(chipBackground)
                                 .border(
-                                    width = if (isSelected || isIslamic) 1.3.dp else 1.dp,
+                                    width = if (isSelected || isIslamic) 1.2.dp else 1.dp,
                                     color = chipBorderColor,
                                     shape = cardShape
                                 )
@@ -393,8 +368,8 @@ fun CategoryChipsBar(
                                             width = if (isIslamic) 1.dp else 0.8.dp,
                                             color = when {
                                                 isIslamic -> Color.Black
-                                                isSelected -> MutedGold.copy(alpha = 0.75f)
-                                                else -> DeepEmerald.copy(alpha = 0.18f)
+                                                isSelected -> Color.White.copy(alpha = 0.25f)
+                                                else -> WarmBorder
                                             },
                                             shape = CircleShape
                                         ),

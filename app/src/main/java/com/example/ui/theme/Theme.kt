@@ -5,7 +5,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-// Calm, Editorial Premium Color Scheme (Apple News / The Economist / Al Jazeera vibe)
+// Crisp Monochrome Editorial Color Scheme (Reuters / NYT / Monocle inspired)
 private val EditorialColorScheme = lightColorScheme(
     primary = DeepEmerald,
     onPrimary = Color.White,
@@ -14,7 +14,7 @@ private val EditorialColorScheme = lightColorScheme(
     secondary = MutedGold,
     onSecondary = Color.White,
     secondaryContainer = GoldTint,
-    onSecondaryContainer = Color(0xFF4A3A12),
+    onSecondaryContainer = Color(0xFF18181B),
     background = WarmOffWhite,
     onBackground = InkPrimary,
     surface = PureWhite,

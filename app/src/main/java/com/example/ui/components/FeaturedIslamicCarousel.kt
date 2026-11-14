@@ -228,8 +228,8 @@ fun FeaturedIslamicCarousel(
                         scaleX = scale
                         scaleY = scale
                     }
-                    .clip(RoundedCornerShape(20.dp))
-                    .border(1.dp, GoldBorder, RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(18.dp))
+                    .border(1.2.dp, InkPrimary, RoundedCornerShape(18.dp))
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null
@@ -237,28 +237,13 @@ fun FeaturedIslamicCarousel(
                     .testTag("featured_card_${article.id}"),
                 colors = CardDefaults.cardColors(containerColor = PureWhite),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = RoundedCornerShape(20.dp)
+                shape = RoundedCornerShape(18.dp)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    EmeraldTint.copy(alpha = 0.7f),
-                                    EmeraldTint.copy(alpha = 0.25f),
-                                    PureWhite
-                                )
-                            )
-                        )
+                        .background(PureWhite)
                 ) {
-                    // Thin gold top line
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp)
-                            .background(MutedGold)
-                    )
 
                     Column(
                         modifier = Modifier
@@ -325,17 +310,17 @@ fun FeaturedIslamicCarousel(
                                     modifier = Modifier
                                         .align(Alignment.TopStart)
                                         .padding(10.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(Color(0xFF111111).copy(alpha = 0.85f))
-                                        .border(0.5.dp, MutedGold, RoundedCornerShape(10.dp))
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(PureWhite.copy(alpha = 0.94f))
+                                        .border(0.8.dp, InkPrimary, RoundedCornerShape(8.dp))
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
                                     Text(
                                         text = "Scholarly",
                                         fontFamily = Inter,
-                                        fontWeight = FontWeight.SemiBold,
+                                        fontWeight = FontWeight.Bold,
                                         fontSize = 10.sp,
-                                        color = Color(0xFFF3DFA2)
+                                        color = InkPrimary
                                     )
                                 }
                             }

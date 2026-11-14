@@ -9,13 +9,15 @@ import androidx.room.RoomDatabase
     entities = [
         ArticleEntity::class,
         ArticleTranslationEntity::class,
-        ArticleBriefingEntity::class
+        ArticleBriefingEntity::class,
+        VideoClipEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun articleDao(): ArticleDao
+    abstract fun videoDao(): VideoDao
 
     companion object {
         @Volatile

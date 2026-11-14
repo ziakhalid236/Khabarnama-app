@@ -23,15 +23,21 @@ class NewsSyncWorker(
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
+        com.example.util.configureAppCheck(applicationContext, null)
+        com.example.data.remote.RemoteConfigManager.initialize(applicationContext)
+        com.example.data.remote.RemoteConfigManager.refreshNow()
+
         val db = AppDatabase.getInstance(applicationContext)
         val remoteSource = RssRemoteNewsSource(applicationContext)
         val repository = DefaultNewsRepository(
             remoteSource = remoteSource,
             articleDao = db.articleDao(),
-            context = applicationContext
+            context = applicationContext,
+            videoDao = db.videoDao()
         )
 
         val status = repository.syncFromRemote()
+        runCatching { repository.syncVideosFromRemote() }
         if (status == SyncStatus.SUCCESS) {
             runCatching {
                 val prefs = applicationContext.getSharedPreferences("khabarnama_prefs", Context.MODE_PRIVATE)

@@ -291,14 +291,14 @@ object NewsNotificationHelper {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
 
-        // Deep Emerald to Dark Emerald gradient background
+        // Matte Obsidian Black to Charcoal editorial gradient background
         val bgPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             shader = LinearGradient(
                 0f, 0f, width.toFloat(), height.toFloat(),
                 intArrayOf(
-                    Color.parseColor("#0A3E34"),
-                    Color.parseColor("#0F5C4D"),
-                    Color.parseColor("#186B5A")
+                    Color.parseColor("#08080A"),
+                    Color.parseColor("#111113"),
+                    Color.parseColor("#1C1C1F")
                 ),
                 null,
                 Shader.TileMode.CLAMP
@@ -306,17 +306,17 @@ object NewsNotificationHelper {
         }
         canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), bgPaint)
 
-        // Subtle gold accent ring & top bar
-        val goldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#B8913B")
+        // Crisp white editorial top rule & subtle geometric wireframe rings
+        val rulePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
             style = Paint.Style.FILL
         }
-        canvas.drawRect(0f, 0f, width.toFloat(), 12f, goldPaint)
+        canvas.drawRect(0f, 0f, width.toFloat(), 10f, rulePaint)
 
         val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.argb(40, 184, 145, 59)
+            color = Color.argb(38, 255, 255, 255)
             style = Paint.Style.STROKE
-            strokeWidth = 4f
+            strokeWidth = 3.5f
         }
         canvas.drawCircle(width * 0.85f, height * 0.25f, 180f, ringPaint)
         canvas.drawCircle(width * 0.15f, height * 0.8f, 140f, ringPaint)
@@ -331,8 +331,8 @@ object NewsNotificationHelper {
         canvas.drawText(sourceName, width / 2f, height / 2f - 10f, titlePaint)
 
         val subPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#F3DFA2")
-            textSize = 30f
+            color = Color.parseColor("#D4D4D8")
+            textSize = 28f
             typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
             textAlign = Paint.Align.CENTER
         }

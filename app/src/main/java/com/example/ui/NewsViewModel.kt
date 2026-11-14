@@ -9,6 +9,8 @@ import com.example.data.NewsRepository
 import com.example.data.SyncStatus
 import com.example.data.ai.SituationBrief
 import com.example.data.local.AppDatabase
+import com.example.data.remote.AppRemoteConfig
+import com.example.data.remote.RemoteConfigManager
 import com.example.data.remote.RssRemoteNewsSource
 import com.example.model.AppLanguage
 import com.example.model.ArticleBriefing
@@ -16,6 +18,8 @@ import com.example.model.IslamicSection
 import com.example.model.LocalizedContent
 import com.example.model.NewsArticle
 import com.example.model.NewsCategory
+import com.example.model.NewsVideoClip
+import com.example.model.VideoChannelConfig
 import com.example.util.CityPrayerInfo
 import com.example.util.NewsNotificationHelper
 import com.example.util.NotificationFocus
@@ -24,6 +28,7 @@ import com.example.worker.NewsSyncWorker
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -58,8 +63,11 @@ class NewsViewModel @JvmOverloads constructor(
     private val repository: NewsRepository = customRepository ?: DefaultNewsRepository(
         remoteSource = RssRemoteNewsSource(application),
         articleDao = AppDatabase.getInstance(application).articleDao(),
-        context = application
+        context = application,
+        videoDao = AppDatabase.getInstance(application).videoDao()
     )
+
+    val remoteConfig: StateFlow<AppRemoteConfig> = RemoteConfigManager.config
 
     private val _currentLanguage = MutableStateFlow(
         AppLanguage.fromCode(prefs.getString(KEY_SELECTED_LANGUAGE, AppLanguage.ENGLISH.code) ?: AppLanguage.ENGLISH.code)
@@ -164,6 +172,18 @@ class NewsViewModel @JvmOverloads constructor(
     private val _savedArticles = MutableStateFlow<List<NewsArticle>>(emptyList())
     val savedArticles: StateFlow<List<NewsArticle>> = _savedArticles.asStateFlow()
 
+    private val _videoClips = MutableStateFlow<List<NewsVideoClip>>(emptyList())
+    val videoClips: StateFlow<List<NewsVideoClip>> = _videoClips.asStateFlow()
+
+    private val _liveChannels = MutableStateFlow<List<VideoChannelConfig>>(emptyList())
+    val liveChannels: StateFlow<List<VideoChannelConfig>> = _liveChannels.asStateFlow()
+
+    private val _selectedVideoClip = MutableStateFlow<NewsVideoClip?>(null)
+    val selectedVideoClip: StateFlow<NewsVideoClip?> = _selectedVideoClip.asStateFlow()
+
+    private val videoTitleCache = ConcurrentHashMap<String, String>()
+    private val inFlightVideoTranslations: MutableSet<String> = ConcurrentHashMap.newKeySet()
+
     private val pageSize = 8
 
     @Volatile
@@ -185,8 +205,24 @@ class NewsViewModel @JvmOverloads constructor(
     private val translationSemaphore = Semaphore(5)
 
     init {
+        RemoteConfigManager.initialize(application)
+        _liveChannels.value = repository.getTrustedVideoChannels()
         NewsSyncWorker.schedulePeriodicSync(application)
         initialLoadAndSync()
+        observeLiveRemoteConfigUpdates()
+    }
+
+    private fun observeLiveRemoteConfigUpdates() {
+        viewModelScope.launch {
+            var lastSeenVersion = RemoteConfigManager.liveSourcesVersion.value
+            RemoteConfigManager.liveSourcesVersion.collect { version ->
+                if (version > 0L && version != lastSeenVersion) {
+                    lastSeenVersion = version
+                    _liveChannels.value = repository.getTrustedVideoChannels()
+                    refreshNews()
+                }
+            }
+        }
     }
 
     private fun loadRecentSearchesFromPrefs(): List<String> {
@@ -292,7 +328,6 @@ class NewsViewModel @JvmOverloads constructor(
         val requestId = activeRequestId.incrementAndGet()
 
         reloadJob = viewModelScope.launch {
-            repository.seedInitialArticlesIfEmpty()
             val cachedCount = repository.getCachedArticleCount()
             if (cachedCount > 0) {
                 _isInitialLoading.value = false
@@ -310,8 +345,11 @@ class NewsViewModel @JvmOverloads constructor(
                 }
             }
 
-            // Full live RSS network sync in background
+            // Full live RSS + official video channel sync in parallel
+            val videoSyncDeferred = async(Dispatchers.IO) { repository.syncVideosFromRemote() }
             val status = repository.syncFromRemote()
+            videoSyncDeferred.await()
+
             if (activeRequestId.get() == requestId) {
                 _isBackgroundSyncing.value = false
                 handleSyncStatus(status)
@@ -398,6 +436,7 @@ class NewsViewModel @JvmOverloads constructor(
 
         val rawNotifications = repository.getRecentAlertArticles(limit = 30)
         val savedList = repository.getSavedArticles(_savedArticleIds.value)
+        val videos = repository.getTrendingVideos(category = category, limit = 16)
         if (activeRequestId.get() != requestId) return
 
         nextBeforePublishedAt = pageResult.nextBeforePublishedAt
@@ -405,6 +444,8 @@ class NewsViewModel @JvmOverloads constructor(
         _hasMore.value = pageResult.hasMore
         _featuredIslamicArticles.value = applyRuntimeTranslationFlags(featured, lang)
         _articles.value = applyRuntimeTranslationFlags(pageResult.articles, lang)
+        _liveChannels.value = repository.getTrustedVideoChannels()
+        _videoClips.value = applyCachedVideoTranslations(videos, lang)
 
         val dismissed = _dismissedNotificationIds.value
         val alertSourceList = if (rawNotifications.isNotEmpty()) {
@@ -433,6 +474,7 @@ class NewsViewModel @JvmOverloads constructor(
         }
 
         enqueueMissingTranslations(lang)
+        enqueueMissingVideoTranslations(lang)
     }
 
     fun setLanguage(language: AppLanguage) {
@@ -509,7 +551,12 @@ class NewsViewModel @JvmOverloads constructor(
             }
             _errorMessage.value = null
 
+            val rcDeferred = async(Dispatchers.IO) { RemoteConfigManager.refreshNow() }
+            val videoDeferred = async(Dispatchers.IO) { repository.syncVideosFromRemote() }
             val status = repository.syncFromRemote()
+            rcDeferred.await()
+            videoDeferred.await()
+
             if (activeRequestId.get() == requestId) {
                 _isBackgroundSyncing.value = false
                 handleSyncStatus(status)
@@ -809,21 +856,80 @@ class NewsViewModel @JvmOverloads constructor(
         NewsNotificationHelper.setNotificationFocus(getApplication(), focus)
     }
 
-    fun sendTestBreakingNotification() {
-        val allArticles = (_notificationArticles.value + _articles.value + _featuredIslamicArticles.value)
-            .distinctBy { it.id }
-            .filter { it.category != NewsCategory.SPORTS && it.category != NewsCategory.BUSINESS }
-            .ifEmpty { _articles.value + _featuredIslamicArticles.value }
-        val candidate = allArticles.firstOrNull { it.imageUrl.startsWith("https://") }
-            ?: allArticles.firstOrNull()
-            ?: return
-        val lang = _currentLanguage.value
-        viewModelScope.launch(Dispatchers.IO) {
-            NewsNotificationHelper.postRichArticleNotification(
-                context = getApplication(),
-                article = candidate,
-                language = lang
-            )
+    fun openVideoClip(clip: NewsVideoClip) {
+        _selectedVideoClip.value = clip
+    }
+
+    fun closeVideoClip() {
+        _selectedVideoClip.value = null
+    }
+
+    fun syncRemoteConfigAndRefresh() {
+        viewModelScope.launch {
+            RemoteConfigManager.refreshNow()
+            _liveChannels.value = repository.getTrustedVideoChannels()
+            refreshNews()
+        }
+    }
+
+    private fun applyCachedVideoTranslations(
+        clips: List<NewsVideoClip>,
+        lang: AppLanguage
+    ): List<NewsVideoClip> {
+        if (lang == AppLanguage.ENGLISH) {
+            return clips.map { it.copy(translatedTitle = null) }
+        }
+        return clips.map { clip ->
+            val cached = videoTitleCache["${clip.id}_${lang.code}"]
+            clip.copy(translatedTitle = cached)
+        }
+    }
+
+    private fun enqueueMissingVideoTranslations(lang: AppLanguage) {
+        if (lang == AppLanguage.ENGLISH) return
+        val pending = _videoClips.value
+            .filter { clip ->
+                val key = "${clip.id}_${lang.code}"
+                clip.translatedTitle.isNullOrBlank() &&
+                    !videoTitleCache.containsKey(key) &&
+                    inFlightVideoTranslations.add(key)
+            }
+            .take(10)
+
+        for (clip in pending) {
+            val key = "${clip.id}_${lang.code}"
+            viewModelScope.launch {
+                try {
+                    translationSemaphore.withPermit {
+                        val translated = repository.translateVideoTitle(clip, lang)
+                        if (!translated.isNullOrBlank()) {
+                            videoTitleCache[key] = translated
+                            _videoClips.update { currentList ->
+                                currentList.map { item ->
+                                    if (item.id == clip.id && _currentLanguage.value == lang) {
+                                        item.copy(translatedTitle = translated)
+                                    } else {
+                                        item
+                                    }
+                                }
+                            }
+                            _selectedVideoClip.update { open ->
+                                if (open?.id == clip.id && _currentLanguage.value == lang) {
+                                    open.copy(translatedTitle = translated)
+                                } else {
+                                    open
+                                }
+                            }
+                        }
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    // Keep original English title gracefully
+                } finally {
+                    inFlightVideoTranslations.remove(key)
+                }
+            }
         }
     }
 

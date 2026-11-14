@@ -290,7 +290,6 @@ class NewsDataLayerTest {
             val testRepo = object : NewsRepository {
                 override suspend fun syncFromRemote(): SyncStatus = SyncStatus.SUCCESS
                 override suspend fun getCachedArticleCount(): Int = allArticles.size
-                override suspend fun seedInitialArticlesIfEmpty(): Boolean = false
                 override suspend fun getFeaturedIslamicArticles(limit: Int): List<com.example.model.NewsArticle> = emptyList()
 
                 override suspend fun getArticlesPage(
@@ -595,5 +594,154 @@ class NewsDataLayerTest {
         val parsedQuote = RssRemoteNewsSource.parseRssXml(quoteXml, FakeNewsTestData.middleEastWorldSource)
         assertEquals(1, parsedQuote.size)
         assertTrue(parsedQuote.first().hasSocialQuote)
+    }
+
+    @Test
+    fun item10_deduplicationSkipsExistingUrls_andRemoteConfigParsersValidateInputs() = runTest {
+        val now = 1_760_000_000_000L
+        val dao = database.articleDao()
+
+        val initialEntity = ArticleEntity(
+            id = "orig_1",
+            normalizedUrl = "aljazeera.com/news/gaza-aid-1",
+            normalizedTitle = "humanitarian convoy reaches northern gaza",
+            title = "Humanitarian convoy reaches northern Gaza",
+            summary = "Original cached summary",
+            category = NewsCategory.PALESTINE.name,
+            islamicSection = null,
+            imageUrl = "",
+            sourceName = "Al Jazeera",
+            sourceUrl = "https://www.aljazeera.com/news/gaza-aid-1",
+            publishedAt = now - 60_000L,
+            isIslamicSource = false,
+            isScholarlySource = false
+        )
+        dao.insertArticles(listOf(initialEntity))
+
+        // Remote returns the same URL with a different id + one genuinely new article
+        val duplicateWithDifferentId = initialEntity.copy(
+            id = "dup_1",
+            summary = "Modified summary that must NOT overwrite cached row"
+        )
+        val newEntity = initialEntity.copy(
+            id = "new_2",
+            normalizedUrl = "aljazeera.com/news/security-talks-2",
+            normalizedTitle = "security talks resume after border alert",
+            title = "Security talks resume after border alert",
+            category = NewsCategory.SECURITY.name,
+            sourceUrl = "https://www.aljazeera.com/news/security-talks-2",
+            publishedAt = now
+        )
+
+        val repo = DefaultNewsRepository(
+            remoteSource = object : RemoteNewsSource {
+                override suspend fun fetchLatestArticles(): List<ArticleEntity> = listOf(duplicateWithDifferentId, newEntity)
+                override fun loadWhitelistedSources(): List<NewsSourceConfig> = emptyList()
+            },
+            articleDao = dao,
+            currentTimeProvider = { now }
+        )
+
+        assertEquals(SyncStatus.SUCCESS, repo.syncFromRemote())
+        assertEquals(2, dao.getTotalCount())
+        assertNull("Duplicate normalized URL must not insert a second row", dao.getArticleById("dup_1"))
+        assertEquals("Original cached summary", dao.getArticleById("orig_1")?.summary)
+
+        // Verify Firebase Remote Config OTA JSON parsers
+        val parsedSources = com.example.data.remote.RemoteConfigManager.parseRemoteNewsSourcesJson(
+            """[{"name":"TRT Arabi","feedUrl":"https://www.trtarabi.com/rss","category":"WORLD","language":"EN","isIslamicSource":false},{"name":"Insecure","feedUrl":"http://insecure.example/rss","category":"WORLD"}]"""
+        )
+        assertEquals(1, parsedSources.size)
+        assertEquals("TRT Arabi", parsedSources.first().name)
+
+        val parsedChannels = com.example.data.remote.RemoteConfigManager.parseRemoteVideoChannelsJson(
+            """[{"channelId":"UC_SAMPLE_123","channelName":"Al Jazeera Arabic","category":"WORLD","countryFlag":"🇶🇦","watchLiveUrl":"https://www.youtube.com/@AlJazeera/live"}]"""
+        )
+        assertEquals(1, parsedChannels.size)
+        assertEquals("https://www.youtube.com/feeds/videos.xml?channel_id=UC_SAMPLE_123", parsedChannels.first().feedUrl)
+    }
+
+    @Test
+    fun item11_youtubeAtomFeedParser_andVideoDaoCachingAndCategoryFilter() = runTest {
+        val now = 1_760_000_000_000L
+        val channel = com.example.model.VideoChannelConfig(
+            channelId = "UCNye-wNBqNL5ZzHSJj3l8Bg",
+            channelName = "Al Jazeera English",
+            category = NewsCategory.WORLD,
+            countryFlag = "🇶🇦"
+        )
+        val atomXml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+              <entry>
+                <yt:videoId>dQw4w9WgXcQ</yt:videoId>
+                <title>Live: Emergency UN Security Council session on Gaza ceasefire</title>
+                <link rel="alternate" href="https://www.youtube.com/watch?v=dQw4w9WgXcQ"/>
+                <author><name>Al Jazeera English</name></author>
+                <published>2026-11-10T10:00:00+00:00</published>
+                <media:group>
+                  <media:thumbnail url="https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg"/>
+                  <media:description>Diplomats convene for urgent Gaza humanitarian briefing.</media:description>
+                </media:group>
+              </entry>
+            </feed>
+        """.trimIndent()
+
+        val clips = com.example.data.remote.YouTubeAtomVideoSource.parseYouTubeAtomFeed(atomXml, channel)
+        assertEquals(1, clips.size)
+        val first = clips.first()
+        assertEquals("dQw4w9WgXcQ", first.videoId)
+        assertEquals("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0&playsinline=1&autoplay=1", first.embedUrl)
+        assertEquals(NewsCategory.PALESTINE.name, first.category)
+        assertTrue(first.isLiveBadge)
+
+        val videoDao = database.videoDao()
+        videoDao.insertVideos(clips)
+        assertEquals(1, videoDao.getTotalCount())
+        assertEquals(1, videoDao.getLatestVideos(category = NewsCategory.PALESTINE.name, limit = 10).size)
+        assertEquals(0, videoDao.getLatestVideos(category = NewsCategory.SPORTS.name, limit = 10).size)
+
+        // Verify YouTube link extractor from standard HTML/RSS strings
+        assertEquals(
+            "abcDEF12345",
+            com.example.data.remote.YouTubeAtomVideoSource.extractYouTubeVideoId("Check report https://youtu.be/abcDEF12345?si=test")
+        )
+        assertEquals(
+            "xyz98765432",
+            com.example.data.remote.YouTubeAtomVideoSource.extractYouTubeVideoId("https://www.youtube.com/watch?v=xyz98765432&feature=share")
+        )
+    }
+
+    @Test
+    fun item12_strictLiveBadgeFiltering_andYouTubeIframeConfigPreventsError153() {
+        val channel = com.example.model.VideoChannelConfig(
+            channelId = "UCR0fZh5SBxxMNYdg0VzRFkg",
+            channelName = "Middle East Eye",
+            category = NewsCategory.PALESTINE,
+            countryFlag = "🇵🇸"
+        )
+        val nonLiveAtomXml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+              <entry>
+                <yt:videoId>AbCdEf12345</yt:videoId>
+                <title>US lawmaker calls for ending weapons aid to save lives</title>
+                <link rel="alternate" href="https://www.youtube.com/watch?v=AbCdEf12345"/>
+                <author><name>Middle East Eye</name></author>
+                <published>2026-11-10T10:00:00+00:00</published>
+              </entry>
+            </feed>
+        """.trimIndent()
+
+        val clips = com.example.data.remote.YouTubeAtomVideoSource.parseYouTubeAtomFeed(nonLiveAtomXml, channel)
+        assertEquals(1, clips.size)
+        assertFalse("Word 'lives' must not falsely trigger LIVE badge", clips.first().isLiveBadge)
+
+        val mutedHtml = com.example.ui.components.buildYouTubeIframeHtml("AbCdEf12345<script>", muted = true)
+        assertTrue(mutedHtml.contains("https://www.youtube.com/embed/AbCdEf12345script?"))
+        assertTrue(mutedHtml.contains("mute=1"))
+        assertTrue(mutedHtml.contains("autoplay=1"))
+        assertTrue(mutedHtml.contains("origin=https://www.youtube.com"))
+        assertTrue(mutedHtml.contains("referrerpolicy=\"strict-origin-when-cross-origin\""))
     }
 }

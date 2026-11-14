@@ -101,50 +101,15 @@ fun BrandedSourcePlaceholder(
     modifier: Modifier = Modifier
 ) {
     val gradientColors = when (category) {
-        NewsCategory.ISLAMIC -> listOf(
-            Color(0xFF0A3E34),
-            Color(0xFF0F5C4D),
-            Color(0xFF196B5A)
+        NewsCategory.ISLAMIC, NewsCategory.PALESTINE -> listOf(
+            Color(0xFF0A0A0B),
+            Color(0xFF151518),
+            Color(0xFF202024)
         )
-        NewsCategory.PAKISTAN -> listOf(
-            Color(0xFF0B4635),
-            Color(0xFF135E46),
-            Color(0xFF1E7056)
-        )
-        NewsCategory.WORLD -> listOf(
-            Color(0xFF142838),
-            Color(0xFF1D3B52),
-            Color(0xFF274D68)
-        )
-        NewsCategory.BUSINESS -> listOf(
-            Color(0xFF3A2B18),
-            Color(0xFF523D22),
-            Color(0xFF6B502E)
-        )
-        NewsCategory.SPORTS -> listOf(
-            Color(0xFF0D4448),
-            Color(0xFF145E63),
-            Color(0xFF1E757B)
-        )
-        NewsCategory.TECHNOLOGY -> listOf(
-            Color(0xFF1A243B),
-            Color(0xFF253454),
-            Color(0xFF32466E)
-        )
-        NewsCategory.ALL -> listOf(
-            Color(0xFF0A3E34),
-            Color(0xFF0F5C4D),
-            Color(0xFF186858)
-        )
-        NewsCategory.PALESTINE -> listOf(
-            Color(0xFF0F3B2E),
-            Color(0xFF165442),
-            Color(0xFF227059)
-        )
-        NewsCategory.SECURITY -> listOf(
-            Color(0xFF202636),
-            Color(0xFF2B354A),
-            Color(0xFF384661)
+        else -> listOf(
+            Color(0xFF111113),
+            Color(0xFF1C1C20),
+            Color(0xFF27272C)
         )
     }
 
@@ -157,7 +122,7 @@ fun BrandedSourcePlaceholder(
         // Subtle editorial geometric rings in the background
         Canvas(modifier = Modifier.fillMaxSize()) {
             val strokeColor = Color.White.copy(alpha = 0.08f)
-            val goldAccent = MutedGold.copy(alpha = 0.18f)
+            val secondaryStroke = Color.White.copy(alpha = 0.14f)
             drawCircle(
                 color = strokeColor,
                 radius = size.minDimension * 0.58f,
@@ -165,7 +130,7 @@ fun BrandedSourcePlaceholder(
                 style = Stroke(width = 2.dp.toPx())
             )
             drawCircle(
-                color = goldAccent,
+                color = secondaryStroke,
                 radius = size.minDimension * 0.42f,
                 center = Offset(size.width * 0.15f, size.height * 0.85f),
                 style = Stroke(width = 1.5.dp.toPx())
@@ -177,23 +142,14 @@ fun BrandedSourcePlaceholder(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.14f))
-                    .border(1.dp, MutedGold.copy(alpha = 0.65f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                KhabarnamaBrandMark(size = 24.dp)
-            }
+            KhabarnamaBrandMark(size = 42.dp)
 
             Text(
                 text = sourceName,
                 fontFamily = PlayfairDisplay,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,
-                fontSize = 20.sp,
+                fontSize = 19.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center
@@ -201,17 +157,18 @@ fun BrandedSourcePlaceholder(
 
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color.White.copy(alpha = 0.14f))
-                    .border(0.5.dp, MutedGold.copy(alpha = 0.55f), RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(Color.White.copy(alpha = 0.12f))
+                    .border(0.5.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
                     .padding(horizontal = 10.dp, vertical = 3.dp)
             ) {
                 Text(
-                    text = "${category.englishLabel} Dispatch",
+                    text = "${category.englishLabel.uppercase()} DISPATCH",
                     fontFamily = Inter,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFFF3DFA2),
-                    fontSize = 11.sp
+                    color = Color.White.copy(alpha = 0.9f),
+                    letterSpacing = 0.6.sp,
+                    fontSize = 10.5.sp
                 )
             }
         }

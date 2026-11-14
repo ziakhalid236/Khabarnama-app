@@ -59,11 +59,11 @@ fun IslamicPortalHeaderCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(20.dp))
-            .border(1.2.dp, GoldBorder, RoundedCornerShape(20.dp))
+            .border(1.dp, Color(0xFF27272A), RoundedCornerShape(20.dp))
             .testTag("islamic_portal_header_card"),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = DeepEmeraldDark),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF0B0B0C)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(
             modifier = Modifier
@@ -71,31 +71,19 @@ fun IslamicPortalHeaderCard(
                 .background(
                     Brush.linearGradient(
                         colors = listOf(
-                            Color(0xFF09392F),
-                            DeepEmerald,
-                            Color(0xFF135A4C)
+                            Color(0xFF0A0A0B),
+                            Color(0xFF141416),
+                            Color(0xFF1C1C1F)
                         )
                     )
                 )
         ) {
-            // Gold accent top line
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .background(
-                        Brush.horizontalGradient(
-                            listOf(MutedGold, Color(0xFFF5E3B3), MutedGold)
-                        )
-                    )
-            )
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(18.dp)
             ) {
-                // Top row: Emblem + Category Label + Hijri Pill
+                // Top row: Crisp Black & White Crescent Emblem + Title + Hijri Pill
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -103,23 +91,10 @@ fun IslamicPortalHeaderCard(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(34.dp)
-                                .clip(CircleShape)
-                                .background(GoldTint)
-                                .border(1.dp, MutedGold, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Mosque,
-                                contentDescription = "Islamic Portal",
-                                tint = DeepEmerald,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
+                        RealisticIslamicBlackEmblem(size = 34.dp)
 
                         Column {
                             Text(
@@ -127,15 +102,15 @@ fun IslamicPortalHeaderCard(
                                 fontFamily = Inter,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
-                                letterSpacing = 1.sp,
-                                color = Color(0xFFE2C98D)
+                                letterSpacing = 1.1.sp,
+                                color = Color.White
                             )
                             Text(
                                 text = "بوابۃ العالم الإسلامی",
                                 fontFamily = NotoNaskhArabic,
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 12.sp,
-                                color = PureWhite.copy(alpha = 0.9f)
+                                color = Color.White.copy(alpha = 0.78f)
                             )
                         }
                     }
@@ -145,7 +120,7 @@ fun IslamicPortalHeaderCard(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
                             .background(Color.White.copy(alpha = 0.12f))
-                            .border(0.8.dp, Color(0xFFE2C98D).copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                            .border(1.dp, Color.White.copy(alpha = 0.28f), RoundedCornerShape(12.dp))
                             .clickable { onOpenPrayerDialog() }
                             .padding(horizontal = 10.dp, vertical = 6.dp)
                             .testTag("islamic_portal_prayer_pill")
@@ -157,7 +132,7 @@ fun IslamicPortalHeaderCard(
                             Icon(
                                 imageVector = Icons.Default.Schedule,
                                 contentDescription = "Prayer times",
-                                tint = Color(0xFFF5E3B3),
+                                tint = Color.White,
                                 modifier = Modifier.size(13.dp)
                             )
                             Text(
@@ -165,6 +140,8 @@ fun IslamicPortalHeaderCard(
                                 fontFamily = Inter,
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 11.5.sp,
+                                maxLines = 1,
+                                softWrap = false,
                                 color = PureWhite
                             )
                         }
@@ -183,10 +160,10 @@ fun IslamicPortalHeaderCard(
                 Text(
                     text = narrativeText,
                     fontFamily = if (isUrdu) NotoNastaliqUrdu else if (isArabic) NotoNaskhArabic else Inter,
-                    fontSize = if (isUrdu) 16.sp else 14.5.sp,
-                    lineHeight = if (isUrdu) 32.sp else 22.sp,
+                    fontSize = if (isUrdu) 16.sp else 14.sp,
+                    lineHeight = if (isUrdu) 32.sp else 21.sp,
                     letterSpacing = if (isUrdu) 0.3.sp else 0.sp,
-                    color = PureWhite.copy(alpha = 0.95f),
+                    color = PureWhite.copy(alpha = 0.92f),
                     textAlign = if (isUrdu || isArabic) TextAlign.Right else TextAlign.Left,
                     modifier = Modifier.fillMaxWidth()
                 )

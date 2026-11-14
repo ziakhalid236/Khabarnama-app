@@ -216,20 +216,10 @@ fun UrduAppBar(
                                 modifier = Modifier
                                     .heightIn(min = 32.dp)
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(
-                                        if (isTranslated) {
-                                            Brush.horizontalGradient(
-                                                colors = listOf(DeepEmerald, Color(0xFF157360))
-                                            )
-                                        } else {
-                                            Brush.horizontalGradient(
-                                                colors = listOf(PureWhite, GoldTint)
-                                            )
-                                        }
-                                    )
+                                    .background(if (isTranslated) InkPrimary else PureWhite)
                                     .border(
                                         width = 1.dp,
-                                        color = if (isTranslated) MutedGold else GoldBorder,
+                                        color = if (isTranslated) InkPrimary else WarmBorder,
                                         shape = RoundedCornerShape(16.dp)
                                     )
                                     .padding(horizontal = 9.dp, vertical = 4.dp),
@@ -243,7 +233,7 @@ fun UrduAppBar(
                                 Icon(
                                     imageVector = Icons.Default.Translate,
                                     contentDescription = "Translate news",
-                                    tint = if (isTranslated) Color(0xFFF5E3B3) else DeepEmerald,
+                                    tint = if (isTranslated) Color.White else InkPrimary,
                                     modifier = Modifier.size(13.dp)
                                 )
                                 Text(
@@ -251,7 +241,7 @@ fun UrduAppBar(
                                     fontFamily = Inter,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.sp,
-                                    color = if (isTranslated) Color.White else DeepEmerald
+                                    color = if (isTranslated) Color.White else InkPrimary
                                 )
                                 Icon(
                                     imageVector = Icons.Default.KeyboardArrowDown,
@@ -274,7 +264,7 @@ fun UrduAppBar(
                             Icon(
                                 imageVector = Icons.Default.Search,
                                 contentDescription = "Open search",
-                                tint = DeepEmerald,
+                                tint = InkPrimary,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -289,7 +279,7 @@ fun UrduAppBar(
                 )
             }
 
-            HorizontalDivider(thickness = 1.dp, color = WarmDivider)
+            HorizontalDivider(thickness = 1.5.dp, color = InkPrimary.copy(alpha = 0.85f))
         }
     }
 }

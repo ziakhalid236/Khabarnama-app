@@ -111,7 +111,10 @@ import com.example.ui.components.NotificationsPage
 import com.example.ui.components.PrayerTimesDialog
 import com.example.ui.components.SettingsDialog
 import com.example.ui.components.SplashScreen
+import com.example.ui.components.TrendingVideosStrip
 import com.example.ui.components.UrduAppBar
+import com.example.ui.components.VideoPlayerDialog
+import com.example.ui.theme.CrimsonBreaking
 import com.example.ui.theme.DeepEmerald
 import com.example.ui.theme.EmeraldTint
 import com.example.ui.theme.GoldBorder
@@ -191,6 +194,10 @@ private fun MainNewsContent(
 
     val activeImageSourceArticle by viewModel.activeImageSourceArticle.collectAsStateWithLifecycle()
     val selectedArticleForDetail by viewModel.selectedArticleForDetail.collectAsStateWithLifecycle()
+    val selectedVideoClip by viewModel.selectedVideoClip.collectAsStateWithLifecycle()
+    val remoteConfig by viewModel.remoteConfig.collectAsStateWithLifecycle()
+    val videoClips by viewModel.videoClips.collectAsStateWithLifecycle()
+    val liveChannels by viewModel.liveChannels.collectAsStateWithLifecycle()
     val activeBriefingState by viewModel.activeBriefingState.collectAsStateWithLifecycle()
     val situationBriefState by viewModel.situationBriefState.collectAsStateWithLifecycle()
     val isShowingPrayerDialog by viewModel.isShowingPrayerDialog.collectAsStateWithLifecycle()
@@ -678,14 +685,49 @@ private fun MainNewsContent(
                                         }
                                     }
 
-                                    // Live Intelligence Situation Brief Banner (on All feed when not searching)
-                                    if (!isSearchOpen && searchQuery.isBlank() && selectedCategory == NewsCategory.ALL && articles.isNotEmpty()) {
+                                    // Remote Config Over-the-Air Live Editorial Bulletin Banner
+                                    if (!isSearchOpen && remoteConfig.liveBulletin.enabled) {
+                                        item(key = "ota_live_bulletin_banner") {
+                                            LiveRemoteBulletinBanner(
+                                                badge = remoteConfig.liveBulletin.badge,
+                                                title = remoteConfig.liveBulletin.title,
+                                                message = remoteConfig.liveBulletin.message,
+                                                sourceUrl = remoteConfig.liveBulletin.sourceUrl
+                                            )
+                                        }
+                                    }
+
+                                    // Live Intelligence Situation Brief Banner (on All feed when not searching & enabled via Remote Config)
+                                    if (!isSearchOpen && searchQuery.isBlank() && selectedCategory == NewsCategory.ALL && articles.isNotEmpty() && remoteConfig.situationBriefEnabled) {
                                         item(key = "live_situation_brief_card") {
                                             LiveSituationBriefBanner(
                                                 state = situationBriefState,
                                                 currentLanguage = currentLanguage,
                                                 onGenerate = { viewModel.generateSituationBrief() },
                                                 onDismiss = { viewModel.dismissSituationBrief() }
+                                            )
+                                        }
+                                    }
+
+                                    // Trending News Video Clips & Official Live Broadcast Channels
+                                    if (!isSearchOpen && searchQuery.isBlank() && remoteConfig.videoSectionEnabled && (videoClips.isNotEmpty() || liveChannels.isNotEmpty())) {
+                                        item(key = "trending_videos_strip") {
+                                            val isVideoStripVisible by remember {
+                                                derivedStateOf {
+                                                    selectedArticleForDetail == null &&
+                                                        selectedVideoClip == null &&
+                                                        !isShowingSettingsDialog &&
+                                                        listState.layoutInfo.visibleItemsInfo.any {
+                                                            it.key == "trending_videos_strip"
+                                                        }
+                                                }
+                                            }
+                                            TrendingVideosStrip(
+                                                videos = videoClips,
+                                                liveChannels = liveChannels,
+                                                currentLanguage = currentLanguage,
+                                                isSectionVisibleOnScreen = isVideoStripVisible,
+                                                onVideoClick = { viewModel.openVideoClip(it) }
                                             )
                                         }
                                     }
@@ -877,6 +919,9 @@ private fun MainNewsContent(
                     selectedCity = selectedCity,
                     hijriAdjustment = hijriAdjustment,
                     notificationsEnabled = notificationsEnabled,
+                    remoteConfig = remoteConfig,
+                    videoChannelsCount = liveChannels.size,
+                    onSyncRemoteConfig = { viewModel.syncRemoteConfigAndRefresh() },
                     onToggleNotifications = { enabled ->
                         viewModel.setNotificationsEnabled(enabled)
                         if (enabled && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -895,6 +940,15 @@ private fun MainNewsContent(
                     onRefreshNews = { viewModel.refreshNews() },
                     isRefreshing = isRefreshing,
                     onDismiss = { isShowingSettingsDialog = false }
+                )
+            }
+
+            // Embedded Official Source Video Player Dialog
+            selectedVideoClip?.let { clip ->
+                VideoPlayerDialog(
+                    clip = clip,
+                    currentLanguage = currentLanguage,
+                    onDismiss = { viewModel.closeVideoClip() }
                 )
             }
         }
@@ -1189,29 +1243,19 @@ private fun LiveSituationBriefBanner(
 
     Surface(
         color = PureWhite,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, GoldBorder, RoundedCornerShape(18.dp))
+            .border(1.2.dp, DeepEmerald, RoundedCornerShape(16.dp))
             .testTag("live_situation_brief_banner")
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            GoldTint.copy(alpha = 0.6f),
-                            EmeraldTint.copy(alpha = 0.45f),
-                            PureWhite
-                        )
-                    )
-                )
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Crisp Monochrome Obsidian Masthead Row
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(DeepEmerald)
+                    .padding(horizontal = 14.dp, vertical = 11.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -1222,32 +1266,35 @@ private fun LiveSituationBriefBanner(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .background(DeepEmerald),
+                            .size(30.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(PureWhite),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = "Intelligence Situation Digest",
-                            tint = Color(0xFFF3DFA2),
-                            modifier = Modifier.size(18.dp)
+                            contentDescription = "Live Situation Desk",
+                            tint = DeepEmerald,
+                            modifier = Modifier.size(17.dp)
                         )
                     }
 
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Live Intelligence Digest",
-                            fontFamily = PlayfairDisplay,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.5.sp,
-                            color = InkPrimary
+                            text = "LIVE SITUATION DESK",
+                            fontFamily = Inter,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 11.5.sp,
+                            letterSpacing = 0.8.sp,
+                            color = PureWhite,
+                            maxLines = 1
                         )
                         Text(
-                            text = "War, security, Palestine & scholars brief in ${currentLanguage.displayName}",
+                            text = "Security, conflicts & scholars • ${currentLanguage.displayName}",
                             fontFamily = Inter,
-                            fontSize = 11.5.sp,
-                            color = SoftGrey
+                            fontSize = 11.sp,
+                            color = Color(0xFFD4D4D8),
+                            maxLines = 1
                         )
                     }
                 }
@@ -1256,17 +1303,20 @@ private fun LiveSituationBriefBanner(
                     SituationBriefUiState.Idle -> {
                         Button(
                             onClick = onGenerate,
-                            colors = ButtonDefaults.buttonColors(containerColor = DeepEmerald),
-                            shape = RoundedCornerShape(10.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PureWhite,
+                                contentColor = DeepEmerald
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                             modifier = Modifier
-                                .heightIn(min = 36.dp)
+                                .heightIn(min = 38.dp)
                                 .testTag("generate_situation_brief_button")
                         ) {
                             Text(
                                 text = "Brief Me",
                                 fontFamily = Inter,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp
                             )
                         }
@@ -1276,7 +1326,7 @@ private fun LiveSituationBriefBanner(
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
                             strokeWidth = 2.dp,
-                            color = DeepEmerald
+                            color = PureWhite
                         )
                     }
 
@@ -1284,24 +1334,24 @@ private fun LiveSituationBriefBanner(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             IconButton(
                                 onClick = onGenerate,
-                                modifier = Modifier.size(34.dp)
+                                modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Refresh,
                                     contentDescription = "Refresh situation brief",
-                                    tint = DeepEmerald,
-                                    modifier = Modifier.size(17.dp)
+                                    tint = PureWhite,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                             IconButton(
                                 onClick = onDismiss,
-                                modifier = Modifier.size(34.dp)
+                                modifier = Modifier.size(36.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Close situation brief",
-                                    tint = SoftGrey,
-                                    modifier = Modifier.size(17.dp)
+                                    tint = Color(0xFFD4D4D8),
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
@@ -1309,112 +1359,133 @@ private fun LiveSituationBriefBanner(
                 }
             }
 
-            when (state) {
-                SituationBriefUiState.Idle -> Unit
-                SituationBriefUiState.Loading -> {
-                    Text(
-                        text = "Synthesizing top security, geopolitical & scholarly dispatches...",
-                        fontFamily = Inter,
-                        fontSize = 12.5.sp,
-                        color = DeepEmerald
-                    )
-                }
+            if (state != SituationBriefUiState.Idle) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    when (state) {
+                        SituationBriefUiState.Idle -> Unit
+                        SituationBriefUiState.Loading -> {
+                            Text(
+                                text = "Synthesizing top security, geopolitical & scholarly dispatches...",
+                                fontFamily = Inter,
+                                fontSize = 12.5.sp,
+                                color = SoftGrey
+                            )
+                        }
 
-                is SituationBriefUiState.Error -> {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Info,
-                            contentDescription = null,
-                            tint = GoldTextDark,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Text(
-                            text = state.message,
-                            fontFamily = Inter,
-                            fontSize = 12.sp,
-                            color = SoftGrey,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                is SituationBriefUiState.Success -> {
-                    val brief = state.brief
-                    HorizontalDivider(thickness = 1.dp, color = GoldBorder.copy(alpha = 0.6f))
-                    CompositionLocalProvider(
-                        LocalLayoutDirection provides (if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
-                    ) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (brief.headline.isNotBlank()) {
+                        is SituationBriefUiState.Error -> {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(WarmOffWhite)
+                                    .border(1.dp, WarmBorder, RoundedCornerShape(10.dp))
+                                    .padding(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Info,
+                                    contentDescription = null,
+                                    tint = InkPrimary,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Text(
-                                    text = brief.headline,
-                                    style = TextStyle(
-                                        fontFamily = if (isRtl) bodyFont else PlayfairDisplay,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = if (isUrdu) 17.5.sp else if (isArabic) 16.sp else 15.5.sp,
-                                        lineHeight = if (isUrdu) 34.sp else if (isArabic) 27.sp else 21.sp,
-                                        color = DeepEmerald,
-                                        textAlign = TextAlign.Start,
-                                        platformStyle = PlatformTextStyle(includeFontPadding = true)
-                                    ),
-                                    modifier = Modifier.fillMaxWidth()
+                                    text = state.message,
+                                    fontFamily = Inter,
+                                    fontSize = 12.sp,
+                                    color = SoftGrey,
+                                    modifier = Modifier.weight(1f)
                                 )
                             }
-                            brief.bullets.forEach { bullet ->
-                                Row(
+                        }
+
+                        is SituationBriefUiState.Success -> {
+                            val brief = state.brief
+                            CompositionLocalProvider(
+                                LocalLayoutDirection provides (if (isRtl) LayoutDirection.Rtl else LayoutDirection.Ltr)
+                            ) {
+                                Column(
                                     modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.Top
+                                    verticalArrangement = Arrangement.spacedBy(9.dp)
                                 ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .padding(top = if (isUrdu) 12.dp else 7.dp)
-                                            .size(6.dp)
-                                            .clip(CircleShape)
-                                            .background(MutedGold)
-                                    )
-                                    Text(
-                                        text = bullet,
-                                        style = TextStyle(
-                                            fontFamily = bodyFont,
-                                            fontSize = if (isUrdu) 15.5.sp else if (isArabic) 14.5.sp else 13.sp,
-                                            lineHeight = if (isUrdu) 32.sp else if (isArabic) 26.sp else 19.sp,
-                                            color = InkPrimary,
-                                            textAlign = TextAlign.Start,
-                                            platformStyle = PlatformTextStyle(includeFontPadding = true)
-                                        ),
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                }
-                            }
-                            if (brief.securityFocusNote.isNotBlank()) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(PureWhite.copy(alpha = 0.8f))
-                                        .border(1.dp, GoldBorder, RoundedCornerShape(10.dp))
-                                        .padding(horizontal = 10.dp, vertical = 7.dp)
-                                ) {
-                                    Text(
-                                        text = brief.securityFocusNote,
-                                        style = TextStyle(
-                                            fontFamily = bodyFont,
-                                            fontWeight = FontWeight.Medium,
-                                            fontSize = if (isUrdu) 14.5.sp else if (isArabic) 13.5.sp else 12.sp,
-                                            lineHeight = if (isUrdu) 29.sp else if (isArabic) 24.sp else 17.sp,
-                                            color = GoldTextDark,
-                                            textAlign = TextAlign.Start,
-                                            platformStyle = PlatformTextStyle(includeFontPadding = true)
-                                        ),
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
+                                    if (brief.headline.isNotBlank()) {
+                                        Text(
+                                            text = brief.headline,
+                                            style = TextStyle(
+                                                fontFamily = if (isRtl) bodyFont else PlayfairDisplay,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = if (isUrdu) 17.5.sp else if (isArabic) 16.sp else 16.sp,
+                                                lineHeight = if (isUrdu) 34.sp else if (isArabic) 27.sp else 22.sp,
+                                                color = InkPrimary,
+                                                textAlign = TextAlign.Start,
+                                                platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                            ),
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+                                    }
+                                    brief.bullets.forEach { bullet ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.Top
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .padding(top = if (isUrdu) 12.dp else 7.dp)
+                                                    .size(5.dp)
+                                                    .background(InkPrimary)
+                                            )
+                                            Text(
+                                                text = bullet,
+                                                style = TextStyle(
+                                                    fontFamily = bodyFont,
+                                                    fontSize = if (isUrdu) 15.5.sp else if (isArabic) 14.5.sp else 13.sp,
+                                                    lineHeight = if (isUrdu) 32.sp else if (isArabic) 26.sp else 19.sp,
+                                                    color = InkPrimary,
+                                                    textAlign = TextAlign.Start,
+                                                    platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                                ),
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
+                                    if (brief.securityFocusNote.isNotBlank()) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clip(RoundedCornerShape(10.dp))
+                                                .background(WarmOffWhite)
+                                                .border(1.dp, WarmBorder, RoundedCornerShape(10.dp))
+                                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.Top
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .width(3.dp)
+                                                    .height(28.dp)
+                                                    .background(InkPrimary)
+                                            )
+                                            Text(
+                                                text = brief.securityFocusNote,
+                                                style = TextStyle(
+                                                    fontFamily = bodyFont,
+                                                    fontWeight = FontWeight.Medium,
+                                                    fontSize = if (isUrdu) 14.5.sp else if (isArabic) 13.5.sp else 12.sp,
+                                                    lineHeight = if (isUrdu) 29.sp else if (isArabic) 24.sp else 17.sp,
+                                                    color = InkPrimary,
+                                                    textAlign = TextAlign.Start,
+                                                    platformStyle = PlatformTextStyle(includeFontPadding = true)
+                                                ),
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1424,4 +1495,75 @@ private fun LiveSituationBriefBanner(
         }
     }
 }
+
+@Composable
+private fun LiveRemoteBulletinBanner(
+    badge: String,
+    title: String,
+    message: String,
+    sourceUrl: String
+) {
+    val context = LocalContext.current
+    val hasLink = sourceUrl.startsWith("https://", ignoreCase = true)
+
+    Surface(
+        color = PureWhite,
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.2.dp, CrimsonBreaking.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
+            .then(
+                if (hasLink) {
+                    Modifier.clickable { com.example.util.BrowserUtil.openCustomTab(context, sourceUrl) }
+                } else {
+                    Modifier
+                }
+            )
+            .testTag("ota_live_bulletin_banner")
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(CrimsonBreaking.copy(alpha = 0.06f))
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(CrimsonBreaking)
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+            ) {
+                Text(
+                    text = badge,
+                    fontFamily = Inter,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 10.sp,
+                    letterSpacing = 0.6.sp,
+                    color = Color.White
+                )
+            }
+
+            Text(
+                text = title,
+                fontFamily = PlayfairDisplay,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp,
+                lineHeight = 22.sp,
+                color = InkPrimary
+            )
+
+            if (message.isNotBlank()) {
+                Text(
+                    text = message,
+                    fontFamily = Inter,
+                    fontSize = 13.sp,
+                    lineHeight = 19.sp,
+                    color = SoftGrey
+                )
+            }
+        }
+    }
+}
+
 

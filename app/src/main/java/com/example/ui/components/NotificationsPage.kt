@@ -81,14 +81,11 @@ import coil.request.ImageRequest
 import com.example.model.AppLanguage
 import com.example.model.NewsArticle
 import com.example.model.NewsCategory
+import com.example.ui.theme.CrimsonBreaking
 import com.example.ui.theme.DeepEmerald
 import com.example.ui.theme.EmeraldTint
-import com.example.ui.theme.GoldBorder
-import com.example.ui.theme.GoldTextDark
-import com.example.ui.theme.GoldTint
 import com.example.ui.theme.InkPrimary
 import com.example.ui.theme.Inter
-import com.example.ui.theme.MutedGold
 import com.example.ui.theme.NotoNaskhArabic
 import com.example.ui.theme.NotoNastaliqUrdu
 import com.example.ui.theme.PlayfairDisplay
@@ -187,8 +184,8 @@ fun NotificationsPage(
         ) {
             // 1. Top Header Bar for Notifications Center
             Surface(
-                color = WarmOffWhite,
-                shadowElevation = 2.dp,
+                color = PureWhite,
+                shadowElevation = 1.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -196,132 +193,150 @@ fun NotificationsPage(
                         .fillMaxWidth()
                         .statusBarsPadding()
                 ) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(EmeraldTint)
-                                    .border(1.dp, DeepEmerald.copy(alpha = 0.25f), CircleShape),
-                                contentAlignment = Alignment.Center
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                modifier = Modifier.weight(1f)
                             ) {
-                                Icon(
-                                    imageVector = Icons.Filled.NotificationsActive,
-                                    contentDescription = "Notifications Center",
-                                    tint = DeepEmerald,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            Column {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(RoundedCornerShape(10.dp))
+                                        .background(DeepEmerald),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = "Notifications",
-                                        fontFamily = PlayfairDisplay,
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 20.sp,
-                                        color = InkPrimary
+                                    Icon(
+                                        imageVector = Icons.Filled.NotificationsActive,
+                                        contentDescription = "Notifications Center",
+                                        tint = PureWhite,
+                                        modifier = Modifier.size(20.dp)
                                     )
-                                    if (unreadCount > 0) {
-                                        Box(
-                                            modifier = Modifier
-                                                .clip(RoundedCornerShape(10.dp))
-                                                .background(DeepEmerald)
-                                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                                        ) {
-                                            Text(
-                                                text = "$unreadCount new",
-                                                fontFamily = Inter,
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 11.sp,
-                                                color = Color.White
-                                            )
+                                }
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text(
+                                            text = "Notifications",
+                                            fontFamily = PlayfairDisplay,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 21.sp,
+                                            color = InkPrimary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        )
+                                        if (unreadCount > 0) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .clip(RoundedCornerShape(8.dp))
+                                                    .background(CrimsonBreaking)
+                                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                                            ) {
+                                                Text(
+                                                    text = "$unreadCount new",
+                                                    fontFamily = Inter,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 11.sp,
+                                                    color = Color.White,
+                                                    maxLines = 1,
+                                                    softWrap = false
+                                                )
+                                            }
                                         }
                                     }
+                                    Text(
+                                        text = "Breaking dispatches & saved stories",
+                                        fontFamily = Inter,
+                                        fontSize = 12.sp,
+                                        color = SoftGrey,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
                                 }
-                                Text(
-                                    text = "Live breaking dispatches & saved stories",
-                                    fontFamily = Inter,
-                                    fontSize = 12.sp,
-                                    color = SoftGrey
-                                )
                             }
                         }
 
-                        // Header Actions: Mark Read & Clear All
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            if (unreadCount > 0 && selectedInboxTab != InboxTab.SAVED) {
-                                Row(
-                                    modifier = Modifier
-                                        .minimumInteractiveComponentSize()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(PureWhite)
-                                        .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
-                                        .clickable { onMarkAllRead() }
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                                        .testTag("mark_all_notifications_read"),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.DoneAll,
-                                        contentDescription = "Mark all read",
-                                        tint = DeepEmerald,
-                                        modifier = Modifier.size(15.dp)
-                                    )
-                                    Text(
-                                        text = "Read all",
-                                        fontFamily = Inter,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 11.5.sp,
-                                        color = DeepEmerald
-                                    )
+                        // Dedicated Clean Header Action Pills (never crowds title or badge)
+                        if ((unreadCount > 0 || sortedAlerts.isNotEmpty()) && selectedInboxTab != InboxTab.SAVED) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (unreadCount > 0) {
+                                    Row(
+                                        modifier = Modifier
+                                            .heightIn(min = 36.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(WarmOffWhite)
+                                            .border(1.dp, WarmBorder, RoundedCornerShape(10.dp))
+                                            .clickable { onMarkAllRead() }
+                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                            .testTag("mark_all_notifications_read"),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.DoneAll,
+                                            contentDescription = "Mark all read",
+                                            tint = InkPrimary,
+                                            modifier = Modifier.size(15.dp)
+                                        )
+                                        Text(
+                                            text = "Mark all read",
+                                            fontFamily = Inter,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 12.sp,
+                                            color = InkPrimary,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
                                 }
-                            }
 
-                            if (sortedAlerts.isNotEmpty() && selectedInboxTab != InboxTab.SAVED) {
-                                Row(
-                                    modifier = Modifier
-                                        .minimumInteractiveComponentSize()
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(PureWhite)
-                                        .border(1.dp, WarmBorder, RoundedCornerShape(12.dp))
-                                        .clickable { onClearAllNotifications() }
-                                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                                        .testTag("clear_all_notifications_button"),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.DeleteSweep,
-                                        contentDescription = "Clear all notifications",
-                                        tint = SoftGrey,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Text(
-                                        text = "Clear",
-                                        fontFamily = Inter,
-                                        fontWeight = FontWeight.SemiBold,
-                                        fontSize = 11.5.sp,
-                                        color = SoftGrey
-                                    )
+                                if (sortedAlerts.isNotEmpty()) {
+                                    Row(
+                                        modifier = Modifier
+                                            .heightIn(min = 36.dp)
+                                            .clip(RoundedCornerShape(10.dp))
+                                            .background(WarmOffWhite)
+                                            .border(1.dp, WarmBorder, RoundedCornerShape(10.dp))
+                                            .clickable { onClearAllNotifications() }
+                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                            .testTag("clear_all_notifications_button"),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.DeleteSweep,
+                                            contentDescription = "Clear all notifications",
+                                            tint = SoftGrey,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = "Clear all",
+                                            fontFamily = Inter,
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 12.sp,
+                                            color = SoftGrey,
+                                            maxLines = 1,
+                                            softWrap = false
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -362,7 +377,7 @@ fun NotificationsPage(
                                     Icon(
                                         imageVector = Icons.Filled.Bookmark,
                                         contentDescription = null,
-                                        tint = if (isSelected) Color.White else MutedGold,
+                                        tint = if (isSelected) Color.White else InkPrimary,
                                         modifier = Modifier.size(14.dp)
                                     )
                                 }
@@ -371,7 +386,9 @@ fun NotificationsPage(
                                     fontFamily = Inter,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 12.sp,
-                                    color = if (isSelected) Color.White else InkPrimary
+                                    color = if (isSelected) Color.White else InkPrimary,
+                                    maxLines = 1,
+                                    softWrap = false
                                 )
                                 if (badgeCount > 0) {
                                     Box(
@@ -414,7 +431,7 @@ fun NotificationsPage(
 
                             val chipBg by animateColorAsState(
                                 targetValue = when {
-                                    isIslamic && isSelected -> Color(0xFF111111)
+                                    isIslamic && isSelected -> Color(0xFF0D0D0E)
                                     isIslamic -> Color.White
                                     isSelected -> DeepEmerald
                                     else -> PureWhite
@@ -425,7 +442,7 @@ fun NotificationsPage(
                             val chipBorder by animateColorAsState(
                                 targetValue = when {
                                     isIslamic -> Color.Black
-                                    isSelected -> MutedGold
+                                    isSelected -> DeepEmerald
                                     else -> WarmBorder
                                 },
                                 animationSpec = tween(180),
@@ -653,14 +670,14 @@ private fun NotificationSectionHeader(
                 modifier = Modifier
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFD93025))
+                    .background(CrimsonBreaking)
             )
         } else {
             Box(
                 modifier = Modifier
                     .width(14.dp)
                     .height(2.dp)
-                    .background(MutedGold)
+                    .background(InkPrimary)
             )
         }
         Text(
@@ -668,7 +685,7 @@ private fun NotificationSectionHeader(
             fontFamily = Inter,
             fontWeight = FontWeight.Bold,
             fontSize = 12.5.sp,
-            color = if (isLive) DeepEmerald else SoftGrey
+            color = if (isLive) InkPrimary else SoftGrey
         )
     }
 }
@@ -682,22 +699,15 @@ private fun PushAlertControlBanner(
 ) {
     Surface(
         color = PureWhite,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(16.dp),
         modifier = Modifier
             .fillMaxWidth()
-            .border(1.dp, if (notificationsEnabled) DeepEmerald.copy(alpha = 0.35f) else WarmBorder, RoundedCornerShape(18.dp))
+            .border(1.dp, if (notificationsEnabled) InkPrimary else WarmBorder, RoundedCornerShape(16.dp))
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            EmeraldTint.copy(alpha = 0.45f),
-                            PureWhite
-                        )
-                    )
-                )
+                .background(PureWhite)
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
@@ -828,33 +838,22 @@ private fun NotificationDispatchCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(16.dp))
             .border(
-                width = if (isUnread) 1.3.dp else 1.dp,
-                color = if (isIslamic) Color.Black else if (isUnread) DeepEmerald.copy(alpha = 0.5f) else WarmBorder,
-                shape = RoundedCornerShape(18.dp)
+                width = if (isUnread) 1.4.dp else 1.dp,
+                color = if (isUnread || isIslamic) InkPrimary else WarmBorder,
+                shape = RoundedCornerShape(16.dp)
             )
             .clickable { onClick() }
             .testTag("notification_card_${article.id}"),
         colors = CardDefaults.cardColors(containerColor = PureWhite),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isUnread) 2.dp else 1.dp),
-        shape = RoundedCornerShape(18.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isUnread) 2.dp else 0.dp),
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(
-                    if (isUnread) {
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                EmeraldTint.copy(alpha = 0.42f),
-                                PureWhite
-                            )
-                        )
-                    } else {
-                        Brush.verticalGradient(listOf(PureWhite, PureWhite))
-                    }
-                )
+                .background(PureWhite)
                 .padding(start = 14.dp, end = 10.dp, top = 12.dp, bottom = 10.dp)
         ) {
             // Top Meta Row: Unread NEW Badge + Publisher Avatar + Name + Time + Category Flag Pill + Dismiss (X)
@@ -880,7 +879,9 @@ private fun NotificationDispatchCard(
                                 fontFamily = Inter,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 9.5.sp,
-                                color = Color.White
+                                color = Color.White,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
@@ -889,7 +890,7 @@ private fun NotificationDispatchCard(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(Color(0xFFC62828))
+                                .background(CrimsonBreaking)
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
@@ -897,7 +898,9 @@ private fun NotificationDispatchCard(
                                 fontFamily = Inter,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 9.5.sp,
-                                color = Color.White
+                                color = Color.White,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }

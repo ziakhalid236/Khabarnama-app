@@ -2,36 +2,40 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Premium International News Palette (Calm, Warm, Editorial)
-// Background: warm off-white
-val WarmOffWhite = Color(0xFFF7F5F0)
+// Monochrome Editorial News Brand Palette (Reuters / NYT / Monocle inspired)
+// Canvas: crisp alabaster newsprint white-grey
+val WarmOffWhite = Color(0xFFF6F6F7)
 // Cards & Surfaces: pure crisp white
 val PureWhite = Color(0xFFFFFFFF)
 
-// Primary: deep emerald
-val DeepEmerald = Color(0xFF0F5C4D)
-val DeepEmeraldDark = Color(0xFF0A3E34)
-val EmeraldTint = Color(0xFFEAF2EE)
+// Primary Brand Ink: deep obsidian black
+val DeepEmerald = Color(0xFF0D0D0E)
+val DeepEmeraldDark = Color(0xFF050506)
+val EmeraldTint = Color(0xFFEEEEF1)
 
-// Secondary accent: muted gold (used very sparingly for Islamic highlight/details)
-val MutedGold = Color(0xFFB8913B)
-val GoldTint = Color(0xFFFAF6ED)
-val GoldBorder = Color(0xFFE2C98D)
-// High-contrast dark gold/bronze for text inside gold-outlined labels (> 6.5:1 contrast on GoldTint & PureWhite)
-val GoldTextDark = Color(0xFF6E5214)
+// Secondary Monochrome Rule & Surface Tokens (keeps palette strictly Black & White)
+val MutedGold = Color(0xFF27272A)
+val GoldTint = Color(0xFFF4F4F5)
+val GoldBorder = Color(0xFFD4D4D8)
+val GoldTextDark = Color(0xFF18181B)
 
-// Text: near-black ink and high-contrast slate grey (> 6:1 contrast on WarmOffWhite & PureWhite, no pure black)
-val InkPrimary = Color(0xFF1B1F1E)
-val SoftGrey = Color(0xFF525A58)
-val MutedGrey = Color(0xFF525A58)
+// Text: deep ink black and high-contrast slate grey (> 7:1 contrast)
+val InkPrimary = Color(0xFF0A0A0B)
+val SoftGrey = Color(0xFF52525B)
+val MutedGrey = Color(0xFF52525B)
 
-// Translucent dark 55% pill for image source badges
-val TranslucentDarkPill = Color(0x8C000000)
+// Translucent dark pill for media attribution badges
+val TranslucentDarkPill = Color(0xB3000000)
 
-// Warm, subtle dividers & borders
-val WarmBorder = Color(0xFFE5E1D8)
-val WarmDivider = Color(0xFFEDE9E0)
+// Crisp hairline dividers & borders
+val WarmBorder = Color(0xFFE4E4E7)
+val WarmDivider = Color(0xFFECECEF)
 
 // Skeleton Shimmer colors
-val ShimmerBase = Color(0xFFEDE9E1)
-val ShimmerHighlight = Color(0xFFFAF8F5)
+val ShimmerBase = Color(0xFFE6E6EA)
+val ShimmerHighlight = Color(0xFFF7F7F9)
+
+// Single Editorial Crimson accent (used strictly for real LIVE broadcasts & priority alerts)
+val CrimsonBreaking = Color(0xFFC8102E)
+
+

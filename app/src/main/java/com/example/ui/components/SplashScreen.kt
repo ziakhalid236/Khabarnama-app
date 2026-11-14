@@ -21,7 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -72,31 +72,27 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Emerald & Gold gradient line loader
+            // Sleek monochrome editorial progress rule
             Box(
                 modifier = Modifier
-                    .width(160.dp)
-                    .height(4.dp)
+                    .width(150.dp)
+                    .height(3.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(EmeraldTint)
+                    .background(Color(0xFFE4E4E7))
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(progress.value)
-                        .height(4.dp)
+                        .height(3.dp)
                         .clip(RoundedCornerShape(2.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(DeepEmerald, MutedGold, DeepEmerald)
-                            )
-                        )
+                        .background(Color(0xFF0A0A0B))
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Live World, Security, Palestine & Islamic Dispatches",
+                text = "World • Security • Palestine • Islamic Dispatch",
                 fontFamily = Inter,
                 fontWeight = FontWeight.Medium,
                 fontSize = 11.sp,

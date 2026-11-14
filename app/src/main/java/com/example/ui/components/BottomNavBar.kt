@@ -48,7 +48,7 @@ import com.example.ui.theme.DeepEmerald
 import com.example.ui.theme.Inter
 import com.example.ui.theme.PureWhite
 import com.example.ui.theme.SoftGrey
-import com.example.ui.theme.WarmDivider
+import com.example.ui.theme.WarmBorder
 
 enum class NavTab(
     val title: String,
@@ -82,14 +82,14 @@ fun KhabarnamaBottomNavBar(
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            HorizontalDivider(thickness = 1.dp, color = WarmDivider)
+            HorizontalDivider(thickness = 1.dp, color = WarmBorder)
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 64.dp)
                     .navigationBarsPadding()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.SpaceAround,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -115,8 +115,8 @@ fun KhabarnamaBottomNavBar(
                             Icon(
                                 imageVector = if (isSelected) tab.filledIcon else tab.outlinedIcon,
                                 contentDescription = "${tab.title} tab",
-                                tint = if (isSelected) DeepEmerald else SoftGrey,
-                                modifier = Modifier.size(24.dp)
+                                tint = if (isSelected) Color(0xFF0A0A0B) else SoftGrey,
+                                modifier = Modifier.size(23.dp)
                             )
 
                             if (tab == NavTab.NOTIFICATIONS && unreadNotificationCount > 0) {
@@ -126,7 +126,7 @@ fun KhabarnamaBottomNavBar(
                                         .offset(x = 8.dp, y = (-4).dp)
                                         .defaultMinSize(minWidth = 16.dp, minHeight = 16.dp)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFFD93025))
+                                        .background(Color(0xFFC8102E))
                                         .padding(horizontal = 4.dp, vertical = 1.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
@@ -136,6 +136,8 @@ fun KhabarnamaBottomNavBar(
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 9.sp,
                                         lineHeight = 10.sp,
+                                        maxLines = 1,
+                                        softWrap = false,
                                         color = Color.White
                                     )
                                 }
@@ -145,9 +147,11 @@ fun KhabarnamaBottomNavBar(
                         Text(
                             text = tab.title,
                             fontFamily = Inter,
-                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                            fontSize = 11.5.sp,
-                            color = if (isSelected) DeepEmerald else SoftGrey
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            fontSize = 11.sp,
+                            maxLines = 1,
+                            softWrap = false,
+                            color = if (isSelected) Color(0xFF0A0A0B) else SoftGrey
                         )
                     }
                 }

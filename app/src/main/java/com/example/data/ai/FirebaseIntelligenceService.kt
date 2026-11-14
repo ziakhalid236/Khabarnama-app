@@ -49,9 +49,18 @@ class FirebaseIntelligenceService {
         )
     )
 
-    private val articleBriefingModel by lazy {
-        Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
-            modelName = "gemini-3.8-flash",
+    @Volatile
+    private var cachedArticleModelPair: Pair<String, com.google.firebase.ai.GenerativeModel>? = null
+
+    @Volatile
+    private var cachedSituationModelPair: Pair<String, com.google.firebase.ai.GenerativeModel>? = null
+
+    private fun getArticleBriefingModel(): com.google.firebase.ai.GenerativeModel {
+        val targetModelName = com.example.data.remote.RemoteConfigManager.config.value.aiModelName
+        val current = cachedArticleModelPair
+        if (current != null && current.first == targetModelName) return current.second
+        val created = Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
+            modelName = targetModelName,
             generationConfig = generationConfig {
                 responseMimeType = "application/json"
                 responseSchema = articleBriefingSchema
@@ -69,11 +78,16 @@ class FirebaseIntelligenceService {
                 )
             }
         )
+        cachedArticleModelPair = targetModelName to created
+        return created
     }
 
-    private val situationBriefModel by lazy {
-        Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
-            modelName = "gemini-3.8-flash",
+    private fun getSituationBriefModel(): com.google.firebase.ai.GenerativeModel {
+        val targetModelName = com.example.data.remote.RemoteConfigManager.config.value.aiModelName
+        val current = cachedSituationModelPair
+        if (current != null && current.first == targetModelName) return current.second
+        val created = Firebase.ai(backend = GenerativeBackend.googleAI()).generativeModel(
+            modelName = targetModelName,
             generationConfig = generationConfig {
                 responseMimeType = "application/json"
                 responseSchema = situationBriefSchema
@@ -87,12 +101,17 @@ class FirebaseIntelligenceService {
                 )
             }
         )
+        cachedSituationModelPair = targetModelName to created
+        return created
     }
 
     suspend fun generateArticleBriefing(
         article: NewsArticle,
         targetLanguage: AppLanguage
     ): Result<ArticleBriefing> = withContext(Dispatchers.IO) {
+        if (!com.example.data.remote.RemoteConfigManager.config.value.aiBriefingEnabled) {
+            return@withContext Result.failure(IllegalStateException("AI editorial briefings are temporarily disabled by remote configuration."))
+        }
         try {
             val langLabel = languagePromptName(targetLanguage)
             val sourceText = article.fullBody.ifBlank { article.summary }
@@ -107,7 +126,7 @@ class FirebaseIntelligenceService {
             }
 
             val response = withTimeout(45_000L) {
-                articleBriefingModel.generateContent(prompt)
+                getArticleBriefingModel().generateContent(prompt)
             }
             val rawJson = response.text?.trim().orEmpty()
             if (rawJson.isBlank()) {
@@ -154,6 +173,9 @@ class FirebaseIntelligenceService {
         articles: List<NewsArticle>,
         targetLanguage: AppLanguage
     ): Result<SituationBrief> = withContext(Dispatchers.IO) {
+        if (!com.example.data.remote.RemoteConfigManager.config.value.situationBriefEnabled) {
+            return@withContext Result.failure(IllegalStateException("Situation digests are temporarily paused by remote configuration."))
+        }
         if (articles.isEmpty()) {
             return@withContext Result.failure(IllegalStateException("No live dispatches available to summarize."))
         }
@@ -169,7 +191,7 @@ class FirebaseIntelligenceService {
             }
 
             val response = withTimeout(45_000L) {
-                situationBriefModel.generateContent(prompt)
+                getSituationBriefModel().generateContent(prompt)
             }
             val rawJson = response.text?.trim().orEmpty()
             if (rawJson.isBlank()) {

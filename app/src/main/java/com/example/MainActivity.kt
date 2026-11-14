@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         configureAppCheck(this, intent)
+        com.example.data.remote.RemoteConfigManager.initialize(this)
         NewsNotificationHelper.ensureNotificationChannel(this)
         handleNotificationIntent(intent)
         enableEdgeToEdge(
@@ -38,14 +39,18 @@ class MainActivity : ComponentActivity() {
         setContent {
             val isSearchOpen by viewModel.isSearchOpen.collectAsStateWithLifecycle()
             val selectedArticle by viewModel.selectedArticleForDetail.collectAsStateWithLifecycle()
+            val selectedVideoClip by viewModel.selectedVideoClip.collectAsStateWithLifecycle()
             val activeImageSource by viewModel.activeImageSourceArticle.collectAsStateWithLifecycle()
             val isShowingLanguageDialog by viewModel.isShowingLanguageDialog.collectAsStateWithLifecycle()
 
             // Back button handlers
-            BackHandler(enabled = isShowingLanguageDialog || isSearchOpen || selectedArticle != null || activeImageSource != null) {
+            BackHandler(
+                enabled = isShowingLanguageDialog || isSearchOpen || selectedArticle != null || selectedVideoClip != null || activeImageSource != null
+            ) {
                 when {
                     isShowingLanguageDialog -> viewModel.showLanguageDialog(false)
                     activeImageSource != null -> viewModel.closeImageSourceSheet()
+                    selectedVideoClip != null -> viewModel.closeVideoClip()
                     selectedArticle != null -> viewModel.closeArticleDetail()
                     isSearchOpen -> viewModel.toggleSearchOpen(false)
                 }

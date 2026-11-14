@@ -9,6 +9,10 @@ import kotlinx.coroutines.Dispatchers
 
 class KhabarnamaApplication : Application(), ImageLoaderFactory {
 
+    override fun onCreate() {
+        super.onCreate()
+    }
+
     override fun newImageLoader(): ImageLoader {
         return ImageLoader.Builder(this)
             .memoryCache {

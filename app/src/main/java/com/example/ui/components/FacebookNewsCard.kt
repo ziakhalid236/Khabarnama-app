@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FormatQuote
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.Share
@@ -65,17 +66,14 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.Dispatchers
+import com.example.data.remote.YouTubeAtomVideoSource
 import com.example.model.AppLanguage
 import com.example.model.NewsArticle
 import com.example.model.NewsCategory
 import com.example.ui.theme.DeepEmerald
 import com.example.ui.theme.EmeraldTint
-import com.example.ui.theme.GoldBorder
-import com.example.ui.theme.GoldTextDark
-import com.example.ui.theme.GoldTint
 import com.example.ui.theme.InkPrimary
 import com.example.ui.theme.Inter
-import com.example.ui.theme.MutedGold
 import com.example.ui.theme.NotoNaskhArabic
 import com.example.ui.theme.NotoNastaliqUrdu
 import com.example.ui.theme.PlayfairDisplay
@@ -120,10 +118,10 @@ fun FacebookNewsCard(
     val isRtlText = isUrdu || isArabic
     val isIslamic = article.category == NewsCategory.ISLAMIC
 
-    val isBreakingLive = remember(article.publishedAt, article.category) {
-        article.category != NewsCategory.SPORTS &&
-            article.category != NewsCategory.BUSINESS &&
-            article.publishedAt >= System.currentTimeMillis() - 2L * 3600_000L
+    val embeddedVideoId = remember(article.sourceUrl, article.fullBody, article.summary) {
+        YouTubeAtomVideoSource.extractYouTubeVideoId(article.sourceUrl)
+            ?: YouTubeAtomVideoSource.extractYouTubeVideoId(article.fullBody)
+            ?: YouTubeAtomVideoSource.extractYouTubeVideoId(article.summary)
     }
 
     val cleanHeadline = remember(articleTitle) { articleTitle.trim() }
@@ -180,29 +178,7 @@ fun FacebookNewsCard(
         else -> 0.05.sp
     }
 
-    val cardBorderColor = if (isIslamic) GoldBorder else WarmBorder
-    val topAccentBrush = if (isIslamic) {
-        Brush.horizontalGradient(listOf(MutedGold, DeepEmerald, MutedGold))
-    } else {
-        Brush.horizontalGradient(listOf(DeepEmerald, DeepEmerald.copy(alpha = 0.65f), MutedGold.copy(alpha = 0.7f)))
-    }
-    val surfaceGradient = if (isIslamic) {
-        Brush.verticalGradient(
-            colors = listOf(
-                GoldTint.copy(alpha = 0.65f),
-                PureWhite,
-                PureWhite
-            )
-        )
-    } else {
-        Brush.verticalGradient(
-            colors = listOf(
-                EmeraldTint.copy(alpha = 0.38f),
-                PureWhite,
-                PureWhite
-            )
-        )
-    }
+    val cardBorderColor = if (isIslamic) InkPrimary else WarmBorder
 
     Card(
         modifier = modifier
@@ -211,8 +187,8 @@ fun FacebookNewsCard(
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(RoundedCornerShape(20.dp))
-            .border(1.dp, cardBorderColor, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(18.dp))
+            .border(1.dp, cardBorderColor, RoundedCornerShape(18.dp))
             .clickable(
                 interactionSource = interactionSource,
                 indication = null
@@ -220,24 +196,16 @@ fun FacebookNewsCard(
             .testTag("news_card_${article.id}"),
         colors = CardDefaults.cardColors(containerColor = PureWhite),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp,
+            defaultElevation = 1.dp,
             pressedElevation = 0.dp
         ),
-        shape = RoundedCornerShape(20.dp)
+        shape = RoundedCornerShape(18.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(surfaceGradient)
+                .background(PureWhite)
         ) {
-            // Top editorial accent bar
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .background(topAccentBrush)
-            )
-
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -314,7 +282,7 @@ fun FacebookNewsCard(
                             )
                     )
 
-                    // Top-left editorial context pills (LIVE breaking, Social/X Quotes, Scholarly)
+                    // Top-left editorial context pills (VIDEO REPORT if video present, Voices & X, Scholarly)
                     Row(
                         modifier = Modifier
                             .align(Alignment.TopStart)
@@ -322,37 +290,38 @@ fun FacebookNewsCard(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (isBreakingLive) {
+                        if (!embeddedVideoId.isNullOrBlank()) {
                             Row(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFFC62828))
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(InkPrimary)
+                                    .border(0.5.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(6.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White)
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "Contains video report",
+                                    tint = PureWhite,
+                                    modifier = Modifier.size(12.dp)
                                 )
                                 Text(
-                                    text = "LIVE",
+                                    text = "VIDEO REPORT",
                                     fontFamily = Inter,
-                                    fontWeight = FontWeight.ExtraBold,
+                                    fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp,
-                                    color = Color.White,
-                                    letterSpacing = 0.6.sp
+                                    color = PureWhite,
+                                    letterSpacing = 0.5.sp
                                 )
                             }
                         }
                         if (article.hasSocialQuote) {
                             Row(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(8.dp))
                                     .background(TranslucentDarkPill)
-                                    .border(0.5.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(10.dp))
+                                    .border(0.5.dp, Color.White.copy(alpha = 0.28f), RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -360,7 +329,7 @@ fun FacebookNewsCard(
                                 Icon(
                                     imageVector = Icons.Default.FormatQuote,
                                     contentDescription = "Direct statement or X dispatch",
-                                    tint = Color(0xFFF3DFA2),
+                                    tint = PureWhite,
                                     modifier = Modifier.size(12.dp)
                                 )
                                 Text(
@@ -368,24 +337,24 @@ fun FacebookNewsCard(
                                     fontFamily = Inter,
                                     fontWeight = FontWeight.SemiBold,
                                     fontSize = 10.sp,
-                                    color = Color.White
+                                    color = PureWhite
                                 )
                             }
                         }
                         if (article.isScholarlySource) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(Color(0xFF111111).copy(alpha = 0.85f))
-                                    .border(0.5.dp, MutedGold, RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(PureWhite.copy(alpha = 0.94f))
+                                    .border(0.8.dp, InkPrimary, RoundedCornerShape(8.dp))
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
                             ) {
                                 Text(
                                     text = "Scholarly",
                                     fontFamily = Inter,
-                                    fontWeight = FontWeight.SemiBold,
+                                    fontWeight = FontWeight.Bold,
                                     fontSize = 10.sp,
-                                    color = Color(0xFFF3DFA2)
+                                    color = InkPrimary
                                 )
                             }
                         }
@@ -445,13 +414,13 @@ fun FacebookNewsCard(
                                 modifier = Modifier
                                     .size(26.dp)
                                     .clip(CircleShape)
-                                    .background(if (isIslamic) DeepEmerald else EmeraldTint)
-                                    .border(1.dp, if (isIslamic) MutedGold else DeepEmerald.copy(alpha = 0.25f), CircleShape),
+                                    .background(if (isIslamic) InkPrimary else EmeraldTint)
+                                    .border(1.dp, if (isIslamic) InkPrimary else WarmBorder, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = article.sourceName.take(1).uppercase(),
-                                    color = if (isIslamic) Color.White else DeepEmerald,
+                                    color = if (isIslamic) PureWhite else InkPrimary,
                                     fontFamily = Inter,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 12.sp
@@ -594,28 +563,29 @@ fun FacebookNewsCard(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Subtle full-briefing callout pill
+                    // Subtle editorial analysis prompt pill
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(5.dp),
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(EmeraldTint.copy(alpha = 0.65f))
+                                .background(EmeraldTint)
+                                .border(0.8.dp, WarmBorder, RoundedCornerShape(8.dp))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AutoAwesome,
                                 contentDescription = null,
-                                tint = DeepEmerald,
+                                tint = InkPrimary,
                                 modifier = Modifier.size(12.dp)
                             )
                             Text(
-                                text = "Tap for full report & AI intelligence brief",
+                                text = "Read full dispatch & editorial briefing",
                                 fontFamily = Inter,
                                 fontWeight = FontWeight.Medium,
                                 fontSize = 11.sp,
-                                color = DeepEmerald
+                                color = InkPrimary
                             )
                         }
                     }
